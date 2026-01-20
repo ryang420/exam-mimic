@@ -48,14 +48,19 @@ export function useTheme() {
       const nextTheme = prevTheme === 'light' ? 'dark' : 'light';
 
       if (currentUser?.id) {
-        supabase
-          .from('profiles')
-          .update({ theme: nextTheme })
-          .eq('id', currentUser.id)
-          .throwOnError()
-          .catch((error) => {
+        const persistTheme = async () => {
+          try {
+            await supabase
+              .from('profiles')
+              .update({ theme: nextTheme })
+              .eq('id', currentUser.id)
+              .throwOnError();
+          } catch (error) {
             console.warn('Failed to persist theme', error);
-          });
+          }
+        };
+
+        persistTheme();
       }
 
       return nextTheme;

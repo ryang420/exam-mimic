@@ -261,9 +261,10 @@ function App() {
       return false;
     }
 
-    const profile = await ensureProfile(data.user);
+    // Do not block login on profile hydration to avoid spinner stalls.
     setIsAuthenticated(true);
-    setCurrentUser(buildUser(data.user, profile));
+    setCurrentUser(buildUser(data.user, null));
+    void ensureProfile(data.user);
     return true;
   };
   

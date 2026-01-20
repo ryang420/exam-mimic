@@ -34,9 +34,9 @@ export default function Login() {
       } else {
         toast.error('邮箱或密码错误');
       }
-      setIsLoading(false);
     } catch (error) {
       toast.error('登录失败，请重试');
+    } finally {
       setIsLoading(false);
     }
   };
