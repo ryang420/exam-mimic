@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Routes, Route, useNavigate } from 'react-router-dom';
+import { Routes, Route, useNavigate, Navigate } from 'react-router-dom';
 import { AuthContext, User } from './contexts/authContext';
 import { supabase } from './lib/supabase';
 
@@ -20,6 +20,8 @@ type ProfileRow = {
   username: string | null;
   is_admin: boolean | null;
   created_at: string | null;
+  theme?: string | null;
+  migration_completed?: boolean | null;
 };
 
 const buildUser = (authUser: any, profile?: ProfileRow | null): User => {
@@ -37,7 +39,7 @@ const buildUser = (authUser: any, profile?: ProfileRow | null): User => {
 const fetchProfile = async (userId: string) => {
   const { data, error } = await supabase
     .from('profiles')
-    .select('id, username, is_admin, created_at')
+    .select('id, username, is_admin, created_at, theme, migration_completed')
     .eq('id', userId)
     .single();
 
@@ -48,6 +50,125 @@ const fetchProfile = async (userId: string) => {
   return data as ProfileRow;
 };
 
+const migrateLocalStorageData = async (user: User, profile?: ProfileRow | null) => {
+  if (!user.id) {
+    return;
+  }
+
+  if (profile?.migration_completed) {
+    return;
+  }
+
+  const userId = user.id;
+  const username = user.username || (user.email ? user.email.split('@')[0] : '用户');
+
+  const theme = localStorage.getItem('theme');
+  if (theme && theme !== profile?.theme) {
+    await supabase.from('profiles').update({ theme }).eq('id', userId);
+  }
+
+  const savedQuestions = localStorage.getItem(`questions_${userId}`);
+  if (savedQuestions) {
+    try {
+      const parsedQuestions = JSON.parse(savedQuestions);
+      if (Array.isArray(parsedQuestions) && parsedQuestions.length > 0) {
+        const questionRows = parsedQuestions.map((question: any) => ({
+          id: question.id,
+          owner_id: userId,
+          number: question.number,
+          question: question.question,
+          options: question.options,
+          correct_answer: question.correctAnswer,
+          explanation: question.explanation,
+          is_multiple_choice: question.isMultipleChoice ?? question.correctAnswer?.length > 1,
+          created_at: question.createdAt,
+          created_by: question.createdBy ?? username,
+          is_global: user.isAdmin ? true : false
+        }));
+
+        await supabase.from('questions').upsert(questionRows, { onConflict: 'id' });
+      }
+    } catch (error) {
+      console.warn('Failed to migrate user questions', error);
+    }
+  }
+
+  if (user.isAdmin) {
+    const globalQuestions = localStorage.getItem('questions_global');
+    if (globalQuestions) {
+      try {
+        const parsedQuestions = JSON.parse(globalQuestions);
+        if (Array.isArray(parsedQuestions) && parsedQuestions.length > 0) {
+          const questionRows = parsedQuestions.map((question: any) => ({
+            id: question.id,
+            owner_id: userId,
+            number: question.number,
+            question: question.question,
+            options: question.options,
+            correct_answer: question.correctAnswer,
+            explanation: question.explanation,
+            is_multiple_choice: question.isMultipleChoice ?? question.correctAnswer?.length > 1,
+            created_at: question.createdAt,
+            created_by: question.createdBy ?? username,
+            is_global: true
+          }));
+
+          await supabase.from('questions').upsert(questionRows, { onConflict: 'id' });
+        }
+      } catch (error) {
+        console.warn('Failed to migrate global questions', error);
+      }
+    }
+  }
+
+  const savedHistory = localStorage.getItem(`examHistory_${userId}`);
+  if (savedHistory) {
+    try {
+      const parsedHistory = JSON.parse(savedHistory);
+      if (Array.isArray(parsedHistory) && parsedHistory.length > 0) {
+        for (const session of parsedHistory) {
+          const sessionRow = {
+            id: session.id,
+            user_id: userId,
+            score: session.score ?? null,
+            started_at: session.startTime ? new Date(session.startTime).toISOString() : null,
+            ended_at: session.endTime ? new Date(session.endTime).toISOString() : null
+          };
+
+          await supabase.from('exam_sessions').upsert(sessionRow, { onConflict: 'id' });
+
+          if (Array.isArray(session.questions)) {
+            const answerRows = session.questions.map((question: any, index: number) => ({
+              id: `answer-${session.id}-${index}`,
+              session_id: session.id,
+              question_id: question.questionId,
+              question_order: index,
+              user_answer: Array.isArray(question.userAnswer) ? question.userAnswer : [],
+              is_correct: question.isCorrect
+            }));
+
+            if (answerRows.length > 0) {
+              await supabase.from('exam_answers').upsert(answerRows, { onConflict: 'id' });
+            }
+          }
+        }
+      }
+    } catch (error) {
+      console.warn('Failed to migrate exam history', error);
+    }
+  }
+
+  await supabase.from('profiles').update({ migration_completed: true }).eq('id', userId);
+
+  localStorage.removeItem(`questions_${userId}`);
+  localStorage.removeItem(`examHistory_${userId}`);
+  localStorage.removeItem('questions_global');
+  localStorage.removeItem('examHistory_global');
+  localStorage.removeItem('currentExamResult');
+  localStorage.removeItem('questions');
+  localStorage.removeItem('theme');
+};
+
 function App() {
   const { theme } = useTheme();
   const navigate = useNavigate();
@@ -55,6 +176,7 @@ function App() {
   // 认证状态
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [currentUser, setCurrentUser] = useState<User | null>(null);
+  const [authReady, setAuthReady] = useState(false);
   
   // 初始化应用
   useEffect(() => {
@@ -67,7 +189,16 @@ function App() {
         if (isMounted) {
           setIsAuthenticated(true);
           setCurrentUser(buildUser(data.session.user, profile));
+          migrateLocalStorageData(buildUser(data.session.user, profile), profile);
         }
+        if (isMounted) {
+          setAuthReady(true);
+        }
+        return;
+      }
+
+      if (isMounted) {
+        setAuthReady(true);
       }
     };
 
@@ -79,10 +210,12 @@ function App() {
         const profile = await fetchProfile(session.user.id);
         setIsAuthenticated(true);
         setCurrentUser(buildUser(session.user, profile));
+        migrateLocalStorageData(buildUser(session.user, profile), profile);
       } else {
         setIsAuthenticated(false);
         setCurrentUser(null);
       }
+      setAuthReady(true);
     });
 
     return () => {
@@ -163,6 +296,7 @@ function App() {
   const authContextValue = {
     isAuthenticated,
     currentUser,
+    authReady,
     setIsAuthenticated,
     setCurrentUser,
     login,
@@ -176,12 +310,19 @@ function App() {
       <div className={`min-h-screen ${theme === 'dark' ? 'dark' : ''}`}>
         <Routes>
           {/* 公开路由 */}
+          <Route
+            path="/"
+            element={
+              authReady ? (
+                isAuthenticated ? <Home /> : <Navigate to="/login" replace />
+              ) : null
+            }
+          />
           <Route path="/login" element={<Login />} />
           <Route path="/register" element={<Register />} />
           
           {/* 受保护路由 */}
           <Route element={<ProtectedRoute />}>
-            <Route path="/" element={<Home />} />
             <Route path="/import" element={<Import />} />
             <Route path="/questions" element={<Questions />} />
             <Route path="/create-question" element={<CreateQuestion />} />

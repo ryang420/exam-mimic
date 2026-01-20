@@ -5,6 +5,7 @@ import { AuthContext } from '@/contexts/authContext';
 import { motion } from 'framer-motion';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, BarChart, Bar, Cell } from 'recharts';
 import { UserStats } from '@/types';
+import { supabase } from '@/lib/supabase';
 
 export default function Home() {
   const { theme, toggleTheme } = useTheme();
@@ -43,48 +44,75 @@ export default function Home() {
   // 加载用户统计数据
   const loadUserStats = () => {
     if (!currentUser) return;
-    
-    const userId = currentUser.id;
-    const userExamHistory = JSON.parse(localStorage.getItem(`examHistory_${userId}`) || '[]');
-    
-    if (userExamHistory.length > 0) {
-      const scores = userExamHistory.map((exam: any) => exam.score);
-      const totalScore = scores.reduce((sum: number, score: number) => sum + score, 0);
-      
-      setUserStats({
-        totalExams: userExamHistory.length,
-        averageScore: Math.round(totalScore / scores.length),
-        highestScore: Math.max(...scores),
-        lowestScore: Math.min(...scores)
-      });
-      
-      // 准备图表数据
-      const chartData = userExamHistory.slice(-5).map((exam: any, index: number) => ({
-        name: `考试 ${index + 1}`,
-        分数: exam.score,
-      }));
-      setChartData(chartData);
-    }
+
+    const load = async () => {
+      const { data, error } = await supabase
+        .from('exam_sessions')
+        .select('score, created_at')
+        .eq('user_id', currentUser.id)
+        .order('created_at', { ascending: true });
+
+      if (error || !data) {
+        return;
+      }
+
+      if (data.length > 0) {
+        const scores = data.map((exam: any) => exam.score ?? 0);
+        const totalScore = scores.reduce((sum: number, score: number) => sum + score, 0);
+
+        setUserStats({
+          totalExams: data.length,
+          averageScore: Math.round(totalScore / scores.length),
+          highestScore: Math.max(...scores),
+          lowestScore: Math.min(...scores)
+        });
+
+        const chartData = data.slice(-5).map((exam: any, index: number) => ({
+          name: `考试 ${index + 1}`,
+          分数: exam.score ?? 0
+        }));
+        setChartData(chartData);
+      }
+    };
+
+    load();
   };
   
   // 加载全局统计数据
   const loadGlobalStats = async () => {
     const allUsers = await getAllUsers();
-    const globalExamHistory = JSON.parse(localStorage.getItem('examHistory_global') || '[]');
-    
-    // 计算总题目数
-    const userId = currentUser?.id || 'default';
-    const savedQuestions = localStorage.getItem(`questions_${userId}`) || localStorage.getItem('questions_global');
-    const totalQuestions = savedQuestions ? JSON.parse(savedQuestions).length : 0;
-    
-    // 计算每个用户的统计数据
+
+    let totalQuestions = 0;
+    if (currentUser?.id) {
+      const { count: userQuestionCount } = await supabase
+        .from('questions')
+        .select('id', { count: 'exact', head: true })
+        .eq('owner_id', currentUser.id);
+
+      if (userQuestionCount && userQuestionCount > 0) {
+        totalQuestions = userQuestionCount;
+      } else {
+        const { count: globalQuestionCount } = await supabase
+          .from('questions')
+          .select('id', { count: 'exact', head: true })
+          .eq('is_global', true);
+        totalQuestions = globalQuestionCount ?? 0;
+      }
+    }
+
+    const { data: globalExamHistory } = await supabase
+      .from('exam_sessions')
+      .select('user_id, score');
+
+    const allExams = globalExamHistory ?? [];
+
     const usersStats: UserStats[] = [];
     allUsers.forEach((user: any) => {
-      const userExams = globalExamHistory.filter((exam: any) => exam.userId === user.id);
+      const userExams = allExams.filter((exam: any) => exam.user_id === user.id);
       if (userExams.length > 0) {
-        const scores = userExams.map((exam: any) => exam.score);
+        const scores = userExams.map((exam: any) => exam.score ?? 0);
         const totalScore = scores.reduce((sum: number, score: number) => sum + score, 0);
-        
+
         usersStats.push({
           userId: user.id,
           username: user.username,
@@ -95,26 +123,24 @@ export default function Home() {
         });
       }
     });
-    
-    // 计算整体平均分
+
     let globalAverageScore = 0;
-    if (globalExamHistory.length > 0) {
-      const totalGlobalScore = globalExamHistory.reduce((sum: number, exam: any) => sum + (exam.score || 0), 0);
-      globalAverageScore = Math.round(totalGlobalScore / globalExamHistory.length);
+    if (allExams.length > 0) {
+      const totalGlobalScore = allExams.reduce((sum: number, exam: any) => sum + (exam.score || 0), 0);
+      globalAverageScore = Math.round(totalGlobalScore / allExams.length);
     }
-    
+
     setGlobalStats({
       totalUsers: allUsers.length,
       totalQuestions,
-      totalExams: globalExamHistory.length,
+      totalExams: allExams.length,
       averageScore: globalAverageScore,
       usersStats
     });
-    
-    // 准备全局图表数据
+
     const chartData = usersStats.slice(0, 8).map((user) => ({
       name: user.username.length > 6 ? `${user.username.substring(0, 6)}...` : user.username,
-      平均分: user.averageScore,
+      平均分: user.averageScore
     }));
     setGlobalChartData(chartData);
   };

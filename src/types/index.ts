@@ -14,16 +14,16 @@ export interface Question {
 // 考试会话类型定义
 export interface ExamSession {
   id: string;
-  startTime: Date;
-  endTime?: Date;
+  startTime: string | Date;
+  endTime?: string | Date;
   questions: {
     questionId: string;
-    userAnswer: string | null;
+    userAnswer: string[] | null;
     isCorrect: boolean | null;
   }[];
   score: number | null;
-  userId: string;
-  username: string;
+  userId?: string;
+  username?: string;
 }
 
 // 全局统计数据类型

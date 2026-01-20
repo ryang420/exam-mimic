@@ -2,53 +2,115 @@ import React, { useState, useEffect, useContext } from 'react';
 import { QuestionCard } from '@/components/QuestionCard';
 import { ExamSession, Question } from '@/types';
 import { useTheme } from '@/hooks/useTheme';
-import { Link } from 'react-router-dom';
+import { Link, useLocation } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { PieChart, Pie, Cell, ResponsiveContainer } from 'recharts';
 import { AuthContext } from '@/contexts/authContext';
+import { supabase } from '@/lib/supabase';
 
 export default function Results() {
   const { theme, toggleTheme } = useTheme();
   const { currentUser } = useContext(AuthContext);
+  const location = useLocation();
   const [examResult, setExamResult] = useState<ExamSession | null>(null);
   const [questions, setQuestions] = useState<Question[]>([]);
   const [showIncorrectOnly, setShowIncorrectOnly] = useState(false);
-  
-  // 从localStorage加载考试结果和题目
+
+  const mapQuestionRow = (row: any): Question => ({
+    id: row.id,
+    number: row.number,
+    question: row.question,
+    options: row.options || {},
+    correctAnswer: row.correct_answer || [],
+    explanation: row.explanation || '',
+    isMultipleChoice: row.is_multiple_choice ?? (row.correct_answer?.length > 1),
+    createdAt: row.created_at,
+    createdBy: row.created_by
+  });
+
+  // 从Supabase加载考试结果和题目
   useEffect(() => {
-    const savedResult = localStorage.getItem('currentExamResult');
-    const userId = currentUser?.id || 'anonymous';
-    
-    // 尝试加载用户自己的题目，如果没有则加载全局题目
-    let savedQuestions = localStorage.getItem(`questions_${userId}`);
-    if (!savedQuestions) {
-      savedQuestions = localStorage.getItem('questions_global');
-    }
-    
-    if (savedResult && savedQuestions) {
-      try {
-        const parsedResult = JSON.parse(savedResult);
-        const parsedQuestions = JSON.parse(savedQuestions);
-        
-        setExamResult(parsedResult);
-        
-        // 过滤出本次考试使用的题目
-        const examQuestionIds = parsedResult.questions.map(q => q.questionId);
-        const examQuestions = parsedQuestions.filter(q => 
-          examQuestionIds.includes(q.id)
-        );
-        
-        // 根据考试结果中的顺序重新排序题目
-        const orderedQuestions = parsedResult.questions.map(q => 
-          examQuestions.find(question => question.id === q.questionId)
-        ).filter(Boolean) as Question[];
-        
-        setQuestions(orderedQuestions);
-      } catch (error) {
-        console.error('加载考试结果失败:', error);
+    if (!currentUser?.id) return;
+
+    const loadResults = async () => {
+      const sessionIdFromState = (location.state as { sessionId?: string } | null)?.sessionId;
+      let sessionId = sessionIdFromState;
+
+      let sessionRow: any = null;
+      if (sessionId) {
+        const { data, error } = await supabase
+          .from('exam_sessions')
+          .select('id, score, started_at, ended_at')
+          .eq('id', sessionId)
+          .single();
+        if (!error) {
+          sessionRow = data;
+        }
+      } else {
+        const { data, error } = await supabase
+          .from('exam_sessions')
+          .select('id, score, started_at, ended_at')
+          .eq('user_id', currentUser.id)
+          .order('ended_at', { ascending: false })
+          .limit(1)
+          .maybeSingle();
+        if (!error) {
+          sessionRow = data;
+          sessionId = data?.id;
+        }
       }
-    }
-  }, [currentUser]);
+
+      if (!sessionRow || !sessionId) {
+        setExamResult(null);
+        setQuestions([]);
+        return;
+      }
+
+      const { data: answers, error: answersError } = await supabase
+        .from('exam_answers')
+        .select('question_id, question_order, user_answer, is_correct')
+        .eq('session_id', sessionId)
+        .order('question_order', { ascending: true });
+
+      if (answersError || !answers) {
+        console.error('加载答题记录失败:', answersError);
+        return;
+      }
+
+      const questionIds = answers.map(answer => answer.question_id).filter(Boolean);
+      const { data: questionRows, error: questionsError } = await supabase
+        .from('questions')
+        .select('*')
+        .in('id', questionIds);
+
+      if (questionsError || !questionRows) {
+        console.error('加载题目失败:', questionsError);
+        return;
+      }
+
+      const questionMap = new Map(questionRows.map(row => [row.id, mapQuestionRow(row)]));
+      const orderedQuestions = answers
+        .map(answer => questionMap.get(answer.question_id))
+        .filter(Boolean) as Question[];
+
+      const parsedResult: ExamSession = {
+        id: sessionRow.id,
+        startTime: sessionRow.started_at ?? sessionRow.ended_at ?? new Date().toISOString(),
+        endTime: sessionRow.ended_at ?? sessionRow.started_at ?? new Date().toISOString(),
+        score: sessionRow.score ?? 0,
+        questions: answers.map(answer => ({
+          questionId: answer.question_id,
+          userAnswer: answer.user_answer ?? [],
+          isCorrect: answer.is_correct
+        }))
+      };
+
+      setExamResult(parsedResult);
+      setQuestions(orderedQuestions);
+    };
+
+    loadResults();
+  }, [currentUser, location.state]);
   
   // 计算统计数据
   const getStats = () => {

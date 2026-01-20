@@ -13,6 +13,7 @@ export interface User {
 interface AuthContextType {
   isAuthenticated: boolean;
   currentUser: User | null;
+  authReady: boolean;
   setIsAuthenticated: (value: boolean) => void;
   setCurrentUser: (user: User | null) => void;
   login: (email: string, password: string) => Promise<boolean>;
@@ -24,6 +25,7 @@ interface AuthContextType {
 export const AuthContext = createContext<AuthContextType>({
   isAuthenticated: false,
   currentUser: null,
+  authReady: false,
   setIsAuthenticated: () => {},
   setCurrentUser: () => {},
   login: async () => false,

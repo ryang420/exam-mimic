@@ -5,6 +5,7 @@ import { useTheme } from '@/hooks/useTheme';
 import { Link } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { AuthContext } from '@/contexts/authContext';
+import { supabase } from '@/lib/supabase';
 
 // 生成下一个选项字母（A, B, C, ..., Z, AA, AB, ...）
 const getNextOptionKey = (currentKeys: string[]): string => {
@@ -138,7 +139,7 @@ export default function CreateQuestion() {
   };
   
   // 保存题目
-  const saveQuestion = () => {
+  const saveQuestion = async () => {
     if (!validateForm()) {
       return;
     }
@@ -146,16 +147,25 @@ export default function CreateQuestion() {
     setIsSubmitting(true);
     
     try {
-      const userId = currentUser?.id || 'default';
-      
-      // 获取现有题目
-      const savedQuestions = localStorage.getItem(`questions_${userId}`);
-      const existingQuestions: Question[] = savedQuestions ? JSON.parse(savedQuestions) : [];
-      
-      // 计算新题目的编号
-      const maxNumber = existingQuestions.length > 0 
-        ? Math.max(...existingQuestions.map(q => q.number)) 
-        : 0;
+      if (!currentUser?.id) {
+        toast.error('请先登录');
+        return;
+      }
+
+      const numberScopeColumn = currentUser.isAdmin ? 'is_global' : 'owner_id';
+      const numberScopeValue = currentUser.isAdmin ? true : currentUser.id;
+      const { data: maxRows, error: maxError } = await supabase
+        .from('questions')
+        .select('number')
+        .eq(numberScopeColumn, numberScopeValue)
+        .order('number', { ascending: false })
+        .limit(1);
+
+      if (maxError) {
+        console.warn('获取题目编号失败:', maxError);
+      }
+
+      const maxNumber = maxRows && maxRows.length > 0 ? (maxRows[0].number ?? 0) : 0;
       
       // 创建新题目
       const newQuestion: Question = {
@@ -171,18 +181,26 @@ export default function CreateQuestion() {
         createdAt: new Date().toISOString(),
         createdBy: currentUser?.username || 'system'
       };
-      
-      // 添加到现有题目列表
-      const updatedQuestions = [...existingQuestions, newQuestion];
-      
-      // 保存到localStorage（按用户隔离）
-      localStorage.setItem(`questions_${userId}`, JSON.stringify(updatedQuestions));
-      
-      // 如果是管理员，也保存到全局题库
-      if (currentUser?.isAdmin) {
-        const globalQuestions = JSON.parse(localStorage.getItem('questions_global') || '[]');
-        const updatedGlobalQuestions = [...globalQuestions, newQuestion];
-        localStorage.setItem('questions_global', JSON.stringify(updatedGlobalQuestions));
+
+      const questionRow = {
+        id: newQuestion.id,
+        owner_id: currentUser.id,
+        number: newQuestion.number,
+        question: newQuestion.question,
+        options: newQuestion.options,
+        correct_answer: newQuestion.correctAnswer,
+        explanation: newQuestion.explanation,
+        is_multiple_choice: newQuestion.isMultipleChoice ?? newQuestion.correctAnswer.length > 1,
+        created_at: newQuestion.createdAt,
+        created_by: newQuestion.createdBy,
+        is_global: currentUser.isAdmin ? true : false
+      };
+
+      const { error } = await supabase.from('questions').insert(questionRow);
+      if (error) {
+        console.error('保存题目失败:', error);
+        toast.error('保存题目失败，请重试');
+        return;
       }
       
       // 显示成功消息

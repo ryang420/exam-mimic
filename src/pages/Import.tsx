@@ -6,41 +6,65 @@ import { toast } from 'sonner';
 import { useTheme } from '@/hooks/useTheme';
 import { Link } from 'react-router-dom';
 import { AuthContext } from '@/contexts/authContext';
+import { supabase } from '@/lib/supabase';
 
 export default function Import() {
   const { theme, toggleTheme } = useTheme();
   const { currentUser } = useContext(AuthContext);
   const [importedQuestions, setImportedQuestions] = useState<Question[]>([]);
   const [showPreview, setShowPreview] = useState(false);
+
+  const mapQuestionRow = (row: any): Question => ({
+    id: row.id,
+    number: row.number,
+    question: row.question,
+    options: row.options || {},
+    correctAnswer: row.correct_answer || [],
+    explanation: row.explanation || '',
+    isMultipleChoice: row.is_multiple_choice ?? (row.correct_answer?.length > 1),
+    createdAt: row.created_at,
+    createdBy: row.created_by
+  });
   
-  // 从localStorage加载已保存的题目
+  // 从Supabase加载已保存的题目
   React.useEffect(() => {
-    const userId = currentUser?.id || 'default';
-    const savedQuestions = localStorage.getItem(`questions_${userId}`);
-    
-    // 如果用户有自己的题目，加载用户自己的题目
-    if (savedQuestions) {
-      try {
-        setImportedQuestions(JSON.parse(savedQuestions));
-      } catch (error) {
+    if (!currentUser?.id) return;
+
+    const loadQuestions = async () => {
+      const { data: userQuestions, error } = await supabase
+        .from('questions')
+        .select('*')
+        .eq('owner_id', currentUser.id)
+        .order('number', { ascending: true });
+
+      if (error) {
         console.error('加载题目失败:', error);
+        return;
       }
-    } 
-    // 否则，如果是管理员，加载全局题目
-    else if (currentUser?.isAdmin) {
-      const globalQuestions = localStorage.getItem('questions_global');
-      if (globalQuestions) {
-        try {
-          setImportedQuestions(JSON.parse(globalQuestions));
-        } catch (error) {
-          console.error('加载全局题目失败:', error);
+
+      if (userQuestions && userQuestions.length > 0) {
+        setImportedQuestions(userQuestions.map(mapQuestionRow));
+        return;
+      }
+
+      if (currentUser.isAdmin) {
+        const { data: globalQuestions } = await supabase
+          .from('questions')
+          .select('*')
+          .eq('is_global', true)
+          .order('number', { ascending: true });
+
+        if (globalQuestions) {
+          setImportedQuestions(globalQuestions.map(mapQuestionRow));
         }
       }
-    }
+    };
+
+    loadQuestions();
   }, [currentUser]);
   
   // 处理文件导入
-  const handleImport = (questions: Question[]) => {
+  const handleImport = async (questions: Question[]) => {
     if (questions.length === 0) {
       toast.warning('未解析到有效题目，请检查文件格式');
       return;
@@ -69,37 +93,66 @@ export default function Import() {
     // 按编号排序
     updatedQuestions.sort((a, b) => a.number - b.number);
     
-    // 保存到localStorage（按用户隔离）
-    const userId = currentUser?.id || 'default';
-    localStorage.setItem(`questions_${userId}`, JSON.stringify(updatedQuestions));
-    
-    // 如果是管理员，也保存到全局题库
-    if (currentUser?.isAdmin) {
-      localStorage.setItem('questions_global', JSON.stringify(updatedQuestions));
+    if (!currentUser?.id) {
+      toast.error('请先登录');
+      return;
     }
-    
-    // 更新状态
+
+    const questionRows = newQuestions.map((question) => ({
+      id: question.id,
+      owner_id: currentUser.id,
+      number: question.number,
+      question: question.question,
+      options: question.options,
+      correct_answer: question.correctAnswer,
+      explanation: question.explanation,
+      is_multiple_choice: question.isMultipleChoice ?? question.correctAnswer.length > 1,
+      created_by: currentUser.username,
+      is_global: currentUser.isAdmin ? true : false
+    }));
+
+    const { error } = await supabase.from('questions').insert(questionRows);
+    if (error) {
+      console.error('保存题目失败:', error);
+      toast.error('保存题目失败，请重试');
+      return;
+    }
+
     setImportedQuestions(updatedQuestions);
-    
-    // 显示预览
     setShowPreview(true);
   };
   
   // 清除所有题目
   const handleClearAll = () => {
     if (window.confirm('确定要删除所有题目吗？此操作不可恢复。')) {
-      const userId = currentUser?.id || 'default';
-      localStorage.removeItem(`questions_${userId}`);
-      
-      // 如果是管理员，也清除全局题目
-      if (currentUser?.isAdmin) {
-        localStorage.removeItem('questions_global');
-      }
-      
-      setImportedQuestions([]);
-      setShowPreview(false);
-      toast.success('所有题目已删除');
+      if (!currentUser?.id) return;
+
+      const clearQuestions = async () => {
+        await supabase.from('questions').delete().eq('owner_id', currentUser.id);
+
+        if (currentUser.isAdmin) {
+          await supabase.from('questions').delete().eq('is_global', true);
+        }
+
+        setImportedQuestions([]);
+        setShowPreview(false);
+        toast.success('所有题目已删除');
+      };
+
+      clearQuestions();
     }
+  };
+
+  const handleDeleteQuestion = async (id: string) => {
+    if (!currentUser?.id) return;
+    const { error } = await supabase.from('questions').delete().eq('id', id);
+    if (error) {
+      toast.error('删除题目失败');
+      return;
+    }
+    const updatedQuestions = importedQuestions.filter(q => q.id !== id);
+    setImportedQuestions(updatedQuestions);
+    toast.success('题目已删除');
   };
   
   return (
@@ -209,12 +262,7 @@ export default function Import() {
                     key={question.id}
                     question={question}
                     isEditable={true}
-                    onDelete={() => {
-                      const updatedQuestions = importedQuestions.filter(q => q.id !== question.id);
-                      localStorage.setItem('questions', JSON.stringify(updatedQuestions));
-                      setImportedQuestions(updatedQuestions);
-                      toast.success(`已删除第 ${question.number} 题`);
-                    }}
+                    onDelete={() => handleDeleteQuestion(question.id)}
                   />
                 ))}
                 

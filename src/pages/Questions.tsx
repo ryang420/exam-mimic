@@ -5,6 +5,7 @@ import { toast } from 'sonner';
 import { useTheme } from '@/hooks/useTheme';
 import { Link } from 'react-router-dom';
 import { AuthContext } from '@/contexts/authContext';
+import { supabase } from '@/lib/supabase';
 
 export default function Questions() {
   const { theme, toggleTheme } = useTheme();
@@ -12,37 +13,57 @@ export default function Questions() {
   const [questions, setQuestions] = useState<Question[]>([]);
   const [searchTerm, setSearchTerm] = useState('');
   const [filteredQuestions, setFilteredQuestions] = useState<Question[]>([]);
+
+  const mapQuestionRow = (row: any): Question => ({
+    id: row.id,
+    number: row.number,
+    question: row.question,
+    options: row.options || {},
+    correctAnswer: row.correct_answer || [],
+    explanation: row.explanation || '',
+    isMultipleChoice: row.is_multiple_choice ?? (row.correct_answer?.length > 1),
+    createdAt: row.created_at,
+    createdBy: row.created_by
+  });
   
-  // 从localStorage加载题目
+  // 从Supabase加载题目
   useEffect(() => {
-    const userId = currentUser?.id || 'default';
-    const savedQuestions = localStorage.getItem(`questions_${userId}`);
-    
-    // 如果用户有自己的题目，加载用户自己的题目
-    if (savedQuestions) {
-      try {
-        const parsedQuestions = JSON.parse(savedQuestions);
-        setQuestions(parsedQuestions);
-        setFilteredQuestions(parsedQuestions);
-      } catch (error) {
+    if (!currentUser?.id) return;
+
+    const loadQuestions = async () => {
+      const { data: userQuestions, error } = await supabase
+        .from('questions')
+        .select('*')
+        .eq('owner_id', currentUser.id)
+        .order('number', { ascending: true });
+
+      if (error) {
         console.error('加载题目失败:', error);
         toast.error('加载题目失败');
+        return;
       }
-    } 
-    // 否则，如果是管理员，加载全局题目
-    else if (currentUser?.isAdmin) {
-      const globalQuestions = localStorage.getItem('questions_global');
+
+      if (userQuestions && userQuestions.length > 0) {
+        const parsedQuestions = userQuestions.map(mapQuestionRow);
+        setQuestions(parsedQuestions);
+        setFilteredQuestions(parsedQuestions);
+        return;
+      }
+
+      const { data: globalQuestions } = await supabase
+        .from('questions')
+        .select('*')
+        .eq('is_global', true)
+        .order('number', { ascending: true });
+
       if (globalQuestions) {
-        try {
-          const parsedQuestions = JSON.parse(globalQuestions);
-          setQuestions(parsedQuestions);
-          setFilteredQuestions(parsedQuestions);
-        } catch (error) {
-          console.error('加载全局题目失败:', error);
-          toast.error('加载题目失败');
-        }
+        const parsedQuestions = globalQuestions.map(mapQuestionRow);
+        setQuestions(parsedQuestions);
+        setFilteredQuestions(parsedQuestions);
       }
-    }
+    };
+
+    loadQuestions();
   }, [currentUser]);
   
   // 过滤题目
@@ -68,36 +89,41 @@ export default function Questions() {
   // 删除题目
   const handleDeleteQuestion = (id: string) => {
     if (window.confirm('确定要删除这道题目吗？')) {
-      const updatedQuestions = questions.filter(q => q.id !== id);
-      const userId = currentUser?.id || 'default';
-      localStorage.setItem(`questions_${userId}`, JSON.stringify(updatedQuestions));
-      
-      // 如果是管理员，也更新全局题目
-      if (currentUser?.isAdmin) {
-        const globalQuestions = JSON.parse(localStorage.getItem('questions_global') || '[]');
-        const updatedGlobalQuestions = globalQuestions.filter((q: any) => q.id !== id);
-        localStorage.setItem('questions_global', JSON.stringify(updatedGlobalQuestions));
-      }
-      
-      setQuestions(updatedQuestions);
-      toast.success('题目已删除');
+      const deleteQuestion = async () => {
+        const { error } = await supabase.from('questions').delete().eq('id', id);
+        if (error) {
+          toast.error('题目删除失败');
+          return;
+        }
+
+        const updatedQuestions = questions.filter(q => q.id !== id);
+        setQuestions(updatedQuestions);
+        setFilteredQuestions(updatedQuestions);
+        toast.success('题目已删除');
+      };
+
+      deleteQuestion();
     }
   };
   
   // 清空所有题目
   const handleClearAll = () => {
     if (window.confirm('确定要删除所有题目吗？此操作不可恢复。')) {
-      const userId = currentUser?.id || 'default';
-      localStorage.removeItem(`questions_${userId}`);
-      
-      // 如果是管理员，也清除全局题目
-      if (currentUser?.isAdmin) {
-        localStorage.removeItem('questions_global');
-      }
-      
-      setQuestions([]);
-      setFilteredQuestions([]);
-      toast.success('所有题目已删除');
+      const clearQuestions = async () => {
+        if (!currentUser?.id) return;
+
+        await supabase.from('questions').delete().eq('owner_id', currentUser.id);
+
+        if (currentUser.isAdmin) {
+          await supabase.from('questions').delete().eq('is_global', true);
+        }
+
+        setQuestions([]);
+        setFilteredQuestions([]);
+        toast.success('所有题目已删除');
+      };
+
+      clearQuestions();
     }
   };
   

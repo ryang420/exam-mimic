@@ -7,6 +7,7 @@ import { useTheme } from '@/hooks/useTheme';
 import { Link, useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { AuthContext } from '@/contexts/authContext';
+import { supabase } from '@/lib/supabase';
 
 export default function Exam() {
   const { theme, toggleTheme } = useTheme();
@@ -18,28 +19,56 @@ export default function Exam() {
   const [isExamStarted, setIsExamStarted] = useState(false);
   const [examDuration] = useState(30); // 考试时长（分钟）
   const [examSession, setExamSession] = useState<ExamSession | null>(null);
-  
-  // 从localStorage加载题目
+
+  const mapQuestionRow = (row: any): Question => ({
+    id: row.id,
+    number: row.number,
+    question: row.question,
+    options: row.options || {},
+    correctAnswer: row.correct_answer || [],
+    explanation: row.explanation || '',
+    isMultipleChoice: row.is_multiple_choice ?? (row.correct_answer?.length > 1),
+    createdAt: row.created_at,
+    createdBy: row.created_by
+  });
+
+  // 从Supabase加载题目
   useEffect(() => {
-    const userId = currentUser?.id || 'default';
-    let savedQuestions = localStorage.getItem(`questions_${userId}`);
-    
-    // 如果用户没有自己的题目，尝试加载全局题目
-    if (!savedQuestions) {
-      savedQuestions = localStorage.getItem('questions_global');
-    }
-    
-    if (savedQuestions) {
-      try {
-        const parsedQuestions = JSON.parse(savedQuestions);
-        // 打乱题目顺序
-        const shuffledQuestions = [...parsedQuestions].sort(() => Math.random() - 0.5);
-        setQuestions(shuffledQuestions);
-      } catch (error) {
+    if (!currentUser?.id) return;
+
+    const loadQuestions = async () => {
+      const { data: userQuestions, error } = await supabase
+        .from('questions')
+        .select('*')
+        .eq('owner_id', currentUser.id)
+        .order('number', { ascending: true });
+
+      if (error) {
         console.error('加载题目失败:', error);
         toast.error('加载题目失败');
+        return;
       }
-    }
+
+      let questionRows = userQuestions ?? [];
+      if (questionRows.length === 0) {
+        const { data: globalQuestions } = await supabase
+          .from('questions')
+          .select('*')
+          .eq('is_global', true)
+          .order('number', { ascending: true });
+        questionRows = globalQuestions ?? [];
+      }
+
+      if (questionRows.length > 0) {
+        const parsedQuestions = questionRows.map(mapQuestionRow);
+        const shuffledQuestions = [...parsedQuestions].sort(() => Math.random() - 0.5);
+        setQuestions(shuffledQuestions);
+      } else {
+        setQuestions([]);
+      }
+    };
+
+    loadQuestions();
   }, [currentUser]);
   
   // 开始考试
@@ -109,7 +138,7 @@ export default function Exam() {
   };
   
   // 交卷
-  const submitExam = () => {
+  const submitExam = async () => {
     if (!examSession) return;
     
     // 计算得分
@@ -154,29 +183,49 @@ export default function Exam() {
       questions: updatedQuestions
     };
     
-    // 更新考试会话，添加用户信息
-    const userExamSession = {
-      ...updatedSession,
-      userId: currentUser?.id || 'anonymous',
-      username: currentUser?.username || '匿名用户'
+    if (!currentUser?.id) {
+      toast.error('请先登录');
+      return;
+    }
+
+    const sessionRow = {
+      id: updatedSession.id,
+      user_id: currentUser.id,
+      score,
+      started_at: new Date(updatedSession.startTime).toISOString(),
+      ended_at: updatedSession.endTime ? new Date(updatedSession.endTime).toISOString() : null
     };
-    
-    // 保存考试结果到用户的考试历史
-    const userId = currentUser?.id || 'anonymous';
-    const userExamHistory = JSON.parse(localStorage.getItem(`examHistory_${userId}`) || '[]');
-    userExamHistory.push(userExamSession);
-    localStorage.setItem(`examHistory_${userId}`, JSON.stringify(userExamHistory));
-    
-    // 保存到全局考试历史（用于统计）
-    const globalExamHistory = JSON.parse(localStorage.getItem('examHistory_global') || '[]');
-    globalExamHistory.push(userExamSession);
-    localStorage.setItem('examHistory_global', JSON.stringify(globalExamHistory));
-    
-    // 保存当前考试会话以便结果页面使用
-    localStorage.setItem('currentExamResult', JSON.stringify(updatedSession));
-    
-    // 跳转到结果页面
-    navigate('/results');
+
+    const { error: sessionError } = await supabase
+      .from('exam_sessions')
+      .insert(sessionRow);
+
+    if (sessionError) {
+      console.error('保存考试结果失败:', sessionError);
+      toast.error('保存考试结果失败，请重试');
+      return;
+    }
+
+    const answerRows = updatedQuestions.map((question, index) => ({
+      id: `answer-${updatedSession.id}-${index}`,
+      session_id: updatedSession.id,
+      question_id: question.questionId,
+      question_order: index,
+      user_answer: question.userAnswer ?? [],
+      is_correct: question.isCorrect
+    }));
+
+    const { error: answersError } = await supabase
+      .from('exam_answers')
+      .insert(answerRows);
+
+    if (answersError) {
+      console.error('保存答题记录失败:', answersError);
+      toast.error('保存答题记录失败，请重试');
+      return;
+    }
+
+    navigate('/results', { state: { sessionId: updatedSession.id } });
   };
   
   // 时间到处理
