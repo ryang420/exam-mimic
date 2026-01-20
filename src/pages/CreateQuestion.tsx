@@ -1,0 +1,478 @@
+import React, { useState } from 'react';
+import { Question } from '@/types';
+import { toast } from 'sonner';
+import { useTheme } from '@/hooks/useTheme';
+import { Link } from 'react-router-dom';
+import { motion } from 'framer-motion';
+
+// 生成下一个选项字母（A, B, C, ..., Z, AA, AB, ...）
+const getNextOptionKey = (currentKeys: string[]): string => {
+  if (currentKeys.length === 0) return 'A';
+  
+  // 提取最后一个键并生成下一个
+  const lastKey = currentKeys[currentKeys.length - 1];
+  
+  // 处理单字母键
+  if (lastKey.length === 1) {
+    if (lastKey === 'Z') {
+      return 'AA';
+    }
+    return String.fromCharCode(lastKey.charCodeAt(0) + 1);
+  }
+  
+  // 处理多字母键 (AA, AB, etc.)
+  let chars = lastKey.split('');
+  let i = chars.length - 1;
+  
+  while (i >= 0) {
+    if (chars[i] === 'Z') {
+      chars[i] = 'A';
+      i--;
+    } else {
+      chars[i] = String.fromCharCode(chars[i].charCodeAt(0) + 1);
+      break;
+    }
+  }
+  
+  if (i < 0) {
+    chars.unshift('A');
+  }
+  
+  return chars.join('');
+};
+
+export default function CreateQuestion() {
+  const { theme, toggleTheme } = useTheme();
+  const [question, setQuestion] = useState('');
+  const [options, setOptions] = useState<Record<string, string>>({
+    A: '',
+    B: '',
+    C: '',
+    D: ''
+  });
+  const [correctAnswers, setCorrectAnswers] = useState<string[]>([]);
+  const [explanation, setExplanation] = useState('');
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  
+  // 处理选项变化
+  const handleOptionChange = (key: string, value: string) => {
+    setOptions(prev => ({
+      ...prev,
+      [key]: value
+    }));
+  };
+  
+  // 添加新选项
+  const addOption = () => {
+    const currentKeys = Object.keys(options);
+    const nextKey = getNextOptionKey(currentKeys);
+    
+    setOptions(prev => ({
+      ...prev,
+      [nextKey]: ''
+    }));
+  };
+  
+  // 删除选项
+  const deleteOption = (key: string) => {
+    // 不能删除所有选项
+    if (Object.keys(options).length <= 1) {
+      toast.error('至少需要保留一个选项');
+      return;
+    }
+    
+    // 创建新的选项对象，不包含要删除的选项
+    const newOptions: Record<string, string> = {};
+    Object.entries(options).forEach(([k, v]) => {
+      if (k !== key) {
+        newOptions[k] = v;
+      }
+    });
+    
+    setOptions(newOptions);
+    
+    // 从正确答案中移除被删除的选项
+    setCorrectAnswers(prev => prev.filter(answer => answer !== key));
+  };
+  
+  // 切换正确答案
+  const toggleCorrectAnswer = (key: string) => {
+    setCorrectAnswers(prev => {
+      if (prev.includes(key)) {
+        return prev.filter(answer => answer !== key);
+      } else {
+        return [...prev, key];
+      }
+    });
+  };
+  
+  // 验证表单
+  const validateForm = (): boolean => {
+    if (!question.trim()) {
+      toast.error('请输入题目内容');
+      return false;
+    }
+    
+    const hasValidOptions = Object.values(options).some(option => option.trim() !== '');
+    if (!hasValidOptions) {
+      toast.error('请至少输入一个选项');
+      return false;
+    }
+    
+    if (correctAnswers.length === 0) {
+      toast.error('请选择正确答案');
+      return false;
+    }
+    
+    // 检查所有正确答案是否都有对应的非空选项
+    for (const answer of correctAnswers) {
+      if (!options[answer]?.trim()) {
+        toast.error('正确答案对应的选项不能为空');
+        return false;
+      }
+    }
+    
+    return true;
+  };
+  
+  // 保存题目
+  const saveQuestion = () => {
+    if (!validateForm()) {
+      return;
+    }
+    
+    setIsSubmitting(true);
+    
+    try {
+      // 获取现有题目
+      const savedQuestions = localStorage.getItem('questions');
+      const existingQuestions: Question[] = savedQuestions ? JSON.parse(savedQuestions) : [];
+      
+       // 获取当前用户信息
+      const currentUserId = localStorage.getItem('currentUserId');
+      const currentUser = JSON.parse(localStorage.getItem('users') || '[]').find((user: any) => user.id === currentUserId);
+      
+      // 计算新题目的编号
+      const maxNumber = existingQuestions.length > 0 
+        ? Math.max(...existingQuestions.map(q => q.number)) 
+        : 0;
+      
+      // 创建新题目
+      const newQuestion: Question = {
+        id: `q-${Date.now()}`,
+        number: maxNumber + 1,
+        question: question.trim(),
+        options: Object.fromEntries(
+          Object.entries(options).filter(([_, value]) => value.trim() !== '')
+        ),
+        correctAnswer: correctAnswers,
+        explanation: explanation.trim(),
+        isMultipleChoice: correctAnswers.length > 1,
+        createdAt: new Date().toISOString(),
+        createdBy: currentUser?.username || 'system'
+      };
+      
+      // 添加到现有题目列表
+      const updatedQuestions = [...existingQuestions, newQuestion];
+      
+      // 保存到localStorage（按用户隔离）
+      const userId = currentUserId || 'default';
+      localStorage.setItem(`questions_${userId}`, JSON.stringify(updatedQuestions));
+      
+      // 如果是管理员，也保存到全局题库
+      if (currentUser?.isAdmin) {
+        const globalQuestions = JSON.parse(localStorage.getItem('questions_global') || '[]');
+        const updatedGlobalQuestions = [...globalQuestions, newQuestion];
+        localStorage.setItem('questions_global', JSON.stringify(updatedGlobalQuestions));
+      }
+      
+      // 显示成功消息
+      toast.success(`题目 #${newQuestion.number} 创建成功！`);
+      
+      // 重置表单
+      resetForm();
+      
+    } catch (error) {
+      console.error('保存题目失败:', error);
+      toast.error('保存题目失败，请重试');
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+  
+  // 重置表单
+  const resetForm = () => {
+    setQuestion('');
+    setOptions({
+      A: '',
+      B: '',
+      C: '',
+      D: ''
+    });
+    setCorrectAnswers([]);
+    setExplanation('');
+  };
+  
+  // 创建另一个题目
+  const createAnotherQuestion = () => {
+    saveQuestion();
+  };
+  
+  // 完成创建并返回题库
+  const completeAndReturn = () => {
+    saveQuestion();
+    // 使用setTimeout确保toast有时间显示
+    setTimeout(() => {
+      window.location.href = '/questions';
+    }, 1000);
+  };
+  
+  return (
+    <div className="min-h-screen bg-gray-50 dark:bg-gray-900 text-gray-900 dark:text-gray-100 transition-colors duration-300">
+      {/* 顶部导航栏 */}
+      <nav className="bg-white/80 dark:bg-gray-800/80 backdrop-blur-md border-b border-gray-200 dark:border-gray-700 sticky top-0 z-50">
+        <div className="container mx-auto px-4 py-4 flex justify-between items-center">
+          <h1 className="text-2xl font-bold text-blue-600 dark:text-blue-400">
+            <i className="fa-solid fa-graduation-cap mr-2"></i>
+            模拟考试系统
+          </h1>
+          <div className="flex items-center space-x-4">
+            <button
+              onClick={toggleTheme}
+              className="p-2 rounded-full bg-gray-100 dark:bg-gray-700 transition-colors"
+              aria-label={theme === 'light' ? '切换到暗色模式' : '切换到亮色模式'}
+            >
+              {theme === 'light' ? (
+                <i className="fa-solid fa-moon"></i>
+              ) : (
+                <i className="fa-solid fa-sun"></i>
+              )}
+            </button>
+          </div>
+        </div>
+      </nav>
+      
+      {/* 主要内容 */}
+      <main className="container mx-auto px-4 py-12">
+        <div className="max-w-3xl mx-auto">
+          <div className="flex items-center justify-between mb-8">
+            <div>
+              <h2 className="text-3xl font-bold mb-2">创建题目</h2>
+              <p className="text-gray-600 dark:text-gray-400">手动创建新题目并添加到您的题库</p>
+            </div>
+            <Link
+              to="/questions"
+              className="px-4 py-2 bg-gray-200 dark:bg-gray-700 hover:bg-gray-300 dark:hover:bg-gray-600 rounded-lg transition-colors"
+            >
+              <i className="fa-solid fa-arrow-left mr-1"></i> 返回题库
+            </Link>
+          </div>
+          
+          {/* 创建题目表单 */}
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.3 }}
+            className="bg-white dark:bg-gray-800 rounded-2xl shadow-lg border border-gray-100 dark:border-gray-700 p-8"
+          >
+            <form onSubmit={(e) => { e.preventDefault(); saveQuestion(); }}>
+              {/* 题目内容 */}
+              <div className="mb-6">
+                <label htmlFor="question" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                  题目内容
+                </label>
+                <textarea
+                  id="question"
+                  value={question}
+                  onChange={(e) => setQuestion(e.target.value)}
+                  placeholder="请输入题目内容..."
+                  className="w-full px-4 py-3 rounded-xl bg-gray-50 dark:bg-gray-700 border border-gray-200 dark:border-gray-600 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent h-32 resize-y"
+                  required
+                ></textarea>
+              </div>
+              
+              {/* 选项 */}
+              <div className="mb-6">
+                <div className="flex items-center justify-between mb-3">
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
+                    选项
+                  </label>
+                  <motion.button
+                    whileHover={{ scale: 1.02 }}
+                    whileTap={{ scale: 0.98 }}
+                    type="button"
+                    onClick={addOption}
+                    className="px-3 py-1.5 bg-blue-100 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 rounded-lg hover:bg-blue-200 dark:hover:bg-blue-900/50 transition-colors text-sm flex items-center"
+                  >
+                    <i className="fa-solid fa-plus mr-1"></i> 添加选项
+                  </motion.button>
+                </div>
+                
+                {Object.entries(options).map(([key, value]) => (
+                  <div key={key} className="mb-3 relative">
+                    <div className="flex items-center space-x-2">
+                      <span className="inline-block w-8 h-8 rounded-full bg-gray-100 dark:bg-gray-700 text-gray-800 dark:text-gray-200 flex items-center justify-center font-bold">
+                        {key}
+                      </span>
+                      <input
+                        type="text"
+                        value={value}
+                        onChange={(e) => handleOptionChange(key, e.target.value)}
+                        placeholder={`选项 ${key}`}
+                        className="flex-1 px-4 py-3 rounded-xl bg-gray-50 dark:bg-gray-700 border border-gray-200 dark:border-gray-600 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                      />
+                      {Object.keys(options).length > 1 && (
+                        <motion.button
+                          whileHover={{ scale: 1.05 }}
+                          whileTap={{ scale: 0.95 }}
+                          type="button"
+                          onClick={() => deleteOption(key)}
+                          className="p-2 text-gray-500 hover:text-red-500 transition-colors rounded-full hover:bg-gray-100 dark:hover:bg-gray-700"
+                          aria-label={`删除选项 ${key}`}
+                        >
+                          <i className="fa-solid fa-trash"></i>
+                        </motion.button>
+                      )}
+                    </div>
+                  </div>
+                ))}
+              </div>
+              
+              {/* 正确答案 */}
+              <div className="mb-6">
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-3">
+                  正确答案 <span className="text-blue-500 dark:text-blue-400 text-xs">(可多选)</span>
+                </label>
+                <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3">
+                  {Object.keys(options).map((key) => (
+                    <motion.div
+                      key={key}
+                      whileHover={{ scale: 1.02 }}
+                      whileTap={{ scale: 0.98 }}
+                    >
+                      <button
+                        type="button"
+                        onClick={() => toggleCorrectAnswer(key)}
+                        className={`w-full py-3 rounded-xl font-medium transition-all ${
+                          correctAnswers.includes(key)
+                            ? 'bg-blue-600 text-white border-transparent'
+                            : 'bg-gray-50 dark:bg-gray-700 border border-gray-200 dark:border-gray-600 text-gray-800 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-600'
+                        }`}
+                      >
+                        选项 {key}
+                      </button>
+                    </motion.div>
+                  ))}
+                </div>
+                {correctAnswers.length > 0 && (
+                  <div className="mt-3 text-sm text-gray-500 dark:text-gray-400">
+                    已选择: {correctAnswers.sort().join(', ')}
+                  </div>
+                )}
+              </div>
+              
+              {/* 解析 */}
+              <div className="mb-8">
+                <label htmlFor="explanation" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                  解析（可选）
+                </label>
+                <textarea
+                  id="explanation"
+                  value={explanation}
+                  onChange={(e) => setExplanation(e.target.value)}
+                  placeholder="请输入题目的详细解析..."
+                  className="w-full px-4 py-3 rounded-xl bg-gray-50 dark:bg-gray-700 border border-gray-200 dark:border-gray-600 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent h-32 resize-y"
+                ></textarea>
+              </div>
+              
+              {/* 操作按钮 */}
+              <div className="flex flex-col sm:flex-row space-y-3 sm:space-y-0 sm:space-x-4">
+                <motion.button
+                  whileHover={{ scale: 1.02 }}
+                  whileTap={{ scale: 0.98 }}
+                  type="button"
+                  onClick={createAnotherQuestion}
+                  className="flex-1 py-3 bg-blue-600 hover:bg-blue-700 text-white font-medium rounded-xl transition-colors flex items-center justify-center"
+                  disabled={isSubmitting}
+                >
+                  {isSubmitting ? (
+                    <>
+                      <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin mr-2"></div>
+                      保存中...
+                    </>
+                  ) : (
+                    <>
+                      <i className="fa-solid fa-plus mr-2"></i>
+                      保存并创建另一题
+                    </>
+                  )}
+                </motion.button>
+                
+                <motion.button
+                  whileHover={{ scale: 1.02 }}
+                  whileTap={{ scale: 0.98 }}
+                  type="button"
+                  onClick={completeAndReturn}
+                  className="flex-1 py-3 bg-green-600 hover:bg-green-700 text-white font-medium rounded-xl transition-colors flex items-center justify-center"
+                  disabled={isSubmitting}
+                >
+                  {isSubmitting ? (
+                    <>
+                      <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin mr-2"></div>
+                      保存中...
+                    </>
+                  ) : (
+                    <>
+                      <i className="fa-solid fa-check mr-2"></i>
+                      保存并完成
+                    </>
+                  )}
+                </motion.button>
+                
+                <motion.button
+                  whileHover={{ scale: 1.02 }}
+                  whileTap={{ scale: 0.98 }}
+                  type="button"
+                  onClick={resetForm}
+                  className="py-3 px-4 bg-gray-200 dark:bg-gray-700 hover:bg-gray-300 dark:hover:bg-gray-600 text-gray-800 dark:text-gray-200 font-medium rounded-xl transition-colors"
+                  disabled={isSubmitting}
+                >
+                  <i className="fa-solid fa-rotate-left"></i>
+                </motion.button>
+              </div>
+            </form>
+          </motion.div>
+          
+          {/* 提示信息 */}
+          <div className="mt-8 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-xl p-4">
+            <h4 className="font-semibold text-blue-800 dark:text-blue-400 mb-2 flex items-center">
+              <i className="fa-solid fa-circle-info mr-2"></i>
+              创建题目提示
+            </h4>
+            <ul className="text-blue-700 dark:text-blue-300 space-y-2">
+              <li className="flex items-start">
+                <i className="fa-solid fa-check-circle mt-1 mr-2"></i>
+                <span>题目创建后将自动保存到您的题库中</span>
+              </li>
+              <li className="flex items-start">
+                <i className="fa-solid fa-check-circle mt-1 mr-2"></i>
+                <span>您可以创建多个选项，但至少需要选择一个正确答案</span>
+              </li>
+              <li className="flex items-start">
+                <i className="fa-solid fa-check-circle mt-1 mr-2"></i>
+                <span>解析内容有助于在考试后理解题目</span>
+              </li>
+            </ul>
+          </div>
+        </div>
+      </main>
+      
+      {/* 页脚 */}
+      <footer className="bg-gray-100 dark:bg-gray-800 border-t border-gray-200 dark:border-gray-700 py-8 mt-16">
+        <div className="container mx-auto px-4 text-center text-gray-600 dark:text-gray-400">
+          <p>© 2026 模拟考试系统 | 设计与开发</p>
+        </div>
+      </footer>
+    </div>
+  );
+}

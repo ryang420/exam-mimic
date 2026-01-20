@@ -1,0 +1,24 @@
+import React, { useContext } from 'react';
+import { Navigate, Outlet } from 'react-router-dom';
+import { AuthContext } from '@/contexts/authContext';
+
+interface ProtectedRouteProps {
+  adminOnly?: boolean;
+}
+
+export const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ adminOnly = false }) => {
+  const { isAuthenticated, currentUser } = useContext(AuthContext);
+  
+  // 如果未登录，重定向到登录页
+  if (!isAuthenticated) {
+    return <Navigate to="/login" replace />;
+  }
+  
+  // 如果需要管理员权限但当前用户不是管理员，重定向到首页
+  if (adminOnly && !currentUser?.isAdmin) {
+    return <Navigate to="/" replace />;
+  }
+  
+  // 如果验证通过，渲染子路由
+  return <Outlet />;
+};
