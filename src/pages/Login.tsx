@@ -7,43 +7,34 @@ import { motion } from 'framer-motion';
 
 export default function Login() {
   const { theme, toggleTheme } = useTheme();
-  const { login, setIsAuthenticated, setCurrentUser } = useContext(AuthContext);
+  const { login } = useContext(AuthContext);
   const navigate = useNavigate();
-  const [username, setUsername] = useState('');
+  const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   
-  const handleLogin = (e: React.FormEvent) => {
+  const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    if (!username || !password) {
-      toast.error('请输入用户名和密码');
+    if (!email || !password) {
+      toast.error('请输入邮箱和密码');
       return;
     }
     
     setIsLoading(true);
     
     try {
-      // 模拟登录过程延迟
-      setTimeout(() => {
-        const success = login(username, password);
+      const success = await login(email, password);
+      
+      if (success) {
+        toast.success('登录成功！');
         
-        if (success) {
-          toast.success('登录成功！');
-          setIsAuthenticated(true);
-          
-          // 获取当前用户信息
-          const users = JSON.parse(localStorage.getItem('users') || '[]');
-          const currentUser = users.find((user: any) => user.username === username);
-          setCurrentUser(currentUser);
-          
-          // 登录成功后跳转到首页
-          navigate('/');
-        } else {
-          toast.error('用户名或密码错误');
-        }
-        setIsLoading(false);
-      }, 500);
+        // 登录成功后跳转到首页
+        navigate('/');
+      } else {
+        toast.error('邮箱或密码错误');
+      }
+      setIsLoading(false);
     } catch (error) {
       toast.error('登录失败，请重试');
       setIsLoading(false);
@@ -70,20 +61,20 @@ export default function Login() {
           
           <form onSubmit={handleLogin}>
             <div className="mb-6">
-              <label htmlFor="username" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                用户名
+              <label htmlFor="email" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                邮箱
               </label>
               <div className="relative">
                 <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
                   <i className="fa-solid fa-user text-gray-400"></i>
                 </div>
                 <input
-                  id="username"
-                  type="text"
-                  value={username}
-                  onChange={(e) => setUsername(e.target.value)}
+                  id="email"
+                  type="email"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
                   className="block w-full pl-10 pr-3 py-3 bg-gray-50 dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                  placeholder="请输入用户名"
+                  placeholder="请输入邮箱"
                   required
                 />
               </div>

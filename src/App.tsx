@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Routes, Route, useNavigate } from 'react-router-dom';
-import { AuthContext } from './contexts/authContext';
-import { User } from './contexts/authContext';
+import { AuthContext, User } from './contexts/authContext';
+import { supabase } from './lib/supabase';
 
 // 页面组件
 import Login from './pages/Login';
@@ -15,24 +15,37 @@ import Results from './pages/Results';
 import { ProtectedRoute } from './components/ProtectedRoute';
 import { useTheme } from './hooks/useTheme';
 
-// 创建默认管理员用户（如果不存在）
-const createDefaultAdmin = () => {
-  const users = JSON.parse(localStorage.getItem('users') || '[]');
-  const adminExists = users.some((user: User) => user.isAdmin);
-  
-  if (!adminExists) {
-    const adminUser: User = {
-      id: 'admin-' + Date.now(),
-      username: 'admin',
-      password: 'admin123', // 简单密码用于演示
-      isAdmin: true,
-      createdAt: new Date().toISOString()
-    };
-    users.push(adminUser);
-    localStorage.setItem('users', JSON.stringify(users));
-    return adminUser;
+type ProfileRow = {
+  id: string;
+  username: string | null;
+  is_admin: boolean | null;
+  created_at: string | null;
+};
+
+const buildUser = (authUser: any, profile?: ProfileRow | null): User => {
+  const email = authUser?.email ?? '';
+  const usernameFromEmail = email.includes('@') ? email.split('@')[0] : email;
+  return {
+    id: authUser?.id ?? '',
+    email,
+    username: profile?.username?.trim() || authUser?.user_metadata?.username || usernameFromEmail || '用户',
+    isAdmin: profile?.is_admin ?? false,
+    createdAt: profile?.created_at ?? authUser?.created_at ?? new Date().toISOString()
+  };
+};
+
+const fetchProfile = async (userId: string) => {
+  const { data, error } = await supabase
+    .from('profiles')
+    .select('id, username, is_admin, created_at')
+    .eq('id', userId)
+    .single();
+
+  if (error) {
+    return null;
   }
-  return null;
+
+  return data as ProfileRow;
 };
 
 function App() {
@@ -45,71 +58,105 @@ function App() {
   
   // 初始化应用
   useEffect(() => {
-    // 创建默认管理员（如果需要）
-    createDefaultAdmin();
-    
-    // 检查用户是否已登录
-    const savedUserId = localStorage.getItem('currentUserId');
-    if (savedUserId) {
-      const users = JSON.parse(localStorage.getItem('users') || '[]');
-      const user = users.find((u: User) => u.id === savedUserId);
-      
-      if (user) {
-        setIsAuthenticated(true);
-        setCurrentUser(user);
+    let isMounted = true;
+
+    const initAuth = async () => {
+      const { data } = await supabase.auth.getSession();
+      if (data.session?.user) {
+        const profile = await fetchProfile(data.session.user.id);
+        if (isMounted) {
+          setIsAuthenticated(true);
+          setCurrentUser(buildUser(data.session.user, profile));
+        }
       }
-    }
+    };
+
+    initAuth();
+
+    const { data: authListener } = supabase.auth.onAuthStateChange(async (_event, session) => {
+      if (!isMounted) return;
+      if (session?.user) {
+        const profile = await fetchProfile(session.user.id);
+        setIsAuthenticated(true);
+        setCurrentUser(buildUser(session.user, profile));
+      } else {
+        setIsAuthenticated(false);
+        setCurrentUser(null);
+      }
+    });
+
+    return () => {
+      isMounted = false;
+      authListener.subscription.unsubscribe();
+    };
   }, []);
   
   // 登录函数
-  const login = (username: string, password: string): boolean => {
-    const users = JSON.parse(localStorage.getItem('users') || '[]');
-    const user = users.find((u: User) => u.username === username && u.password === password);
-    
-    if (user) {
-      localStorage.setItem('currentUserId', user.id);
-      setIsAuthenticated(true);
-      setCurrentUser(user);
-      return true;
+  const login = async (email: string, password: string): Promise<boolean> => {
+    const { data, error } = await supabase.auth.signInWithPassword({
+      email,
+      password
+    });
+
+    if (error || !data.user) {
+      return false;
     }
-    
-    return false;
+
+    const profile = await fetchProfile(data.user.id);
+    setIsAuthenticated(true);
+    setCurrentUser(buildUser(data.user, profile));
+    return true;
   };
   
   // 注册函数
-  const register = (username: string, password: string, isAdmin: boolean = false): boolean => {
-    const users = JSON.parse(localStorage.getItem('users') || '[]');
-    
-    // 检查用户名是否已存在
-    if (users.some((u: User) => u.username === username)) {
+  const register = async (email: string, password: string): Promise<boolean> => {
+    const username = email.includes('@') ? email.split('@')[0] : email;
+
+    const { data, error } = await supabase.auth.signUp({
+      email,
+      password,
+      options: {
+        data: { username }
+      }
+    });
+
+    if (error || !data.user) {
       return false;
     }
-    
-    // 创建新用户
-    const newUser: User = {
-      id: 'user-' + Date.now(),
-      username,
-      password,
-      isAdmin,
-      createdAt: new Date().toISOString()
-    };
-    
-    users.push(newUser);
-    localStorage.setItem('users', JSON.stringify(users));
+
+    await supabase.from('profiles').upsert(
+      {
+        id: data.user.id,
+        username,
+        is_admin: false
+      },
+      { onConflict: 'id' }
+    );
+
     return true;
   };
   
   // 登出函数
-  const logout = () => {
-    localStorage.removeItem('currentUserId');
+  const logout = async () => {
+    await supabase.auth.signOut();
     setIsAuthenticated(false);
     setCurrentUser(null);
     navigate('/login');
   };
   
   // 获取所有用户
-  const getAllUsers = (): User[] => {
-    return JSON.parse(localStorage.getItem('users') || '[]');
+  const getAllUsers = async (): Promise<User[]> => {
+    const { data, error } = await supabase
+      .from('profiles')
+      .select('id, username, is_admin, created_at');
+
+    if (error || !data) {
+      return [];
+    }
+
+    return data.map((profile) =>
+      buildUser({ id: profile.id, email: '', created_at: profile.created_at }, profile as ProfileRow)
+    );
   };
   
   // 认证上下文值

@@ -1,9 +1,10 @@
-import React, { useState } from 'react';
+import React, { useState, useContext } from 'react';
 import { Question } from '@/types';
 import { toast } from 'sonner';
 import { useTheme } from '@/hooks/useTheme';
 import { Link } from 'react-router-dom';
 import { motion } from 'framer-motion';
+import { AuthContext } from '@/contexts/authContext';
 
 // 生成下一个选项字母（A, B, C, ..., Z, AA, AB, ...）
 const getNextOptionKey = (currentKeys: string[]): string => {
@@ -43,6 +44,7 @@ const getNextOptionKey = (currentKeys: string[]): string => {
 
 export default function CreateQuestion() {
   const { theme, toggleTheme } = useTheme();
+  const { currentUser } = useContext(AuthContext);
   const [question, setQuestion] = useState('');
   const [options, setOptions] = useState<Record<string, string>>({
     A: '',
@@ -144,13 +146,11 @@ export default function CreateQuestion() {
     setIsSubmitting(true);
     
     try {
-      // 获取现有题目
-      const savedQuestions = localStorage.getItem('questions');
-      const existingQuestions: Question[] = savedQuestions ? JSON.parse(savedQuestions) : [];
+      const userId = currentUser?.id || 'default';
       
-       // 获取当前用户信息
-      const currentUserId = localStorage.getItem('currentUserId');
-      const currentUser = JSON.parse(localStorage.getItem('users') || '[]').find((user: any) => user.id === currentUserId);
+      // 获取现有题目
+      const savedQuestions = localStorage.getItem(`questions_${userId}`);
+      const existingQuestions: Question[] = savedQuestions ? JSON.parse(savedQuestions) : [];
       
       // 计算新题目的编号
       const maxNumber = existingQuestions.length > 0 
@@ -176,7 +176,6 @@ export default function CreateQuestion() {
       const updatedQuestions = [...existingQuestions, newQuestion];
       
       // 保存到localStorage（按用户隔离）
-      const userId = currentUserId || 'default';
       localStorage.setItem(`questions_${userId}`, JSON.stringify(updatedQuestions));
       
       // 如果是管理员，也保存到全局题库

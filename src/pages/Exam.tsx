@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useContext } from 'react';
 import { QuestionCard } from '@/components/QuestionCard';
 import { ExamTimer } from '@/components/ExamTimer';
 import { Question, ExamSession } from '@/types';
@@ -6,9 +6,11 @@ import { toast } from 'sonner';
 import { useTheme } from '@/hooks/useTheme';
 import { Link, useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
+import { AuthContext } from '@/contexts/authContext';
 
 export default function Exam() {
   const { theme, toggleTheme } = useTheme();
+  const { currentUser } = useContext(AuthContext);
   const navigate = useNavigate();
   const [questions, setQuestions] = useState<Question[]>([]);
   const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0);
@@ -19,8 +21,7 @@ export default function Exam() {
   
   // 从localStorage加载题目
   useEffect(() => {
-    const currentUserId = localStorage.getItem('currentUserId');
-    const userId = currentUserId || 'default';
+    const userId = currentUser?.id || 'default';
     let savedQuestions = localStorage.getItem(`questions_${userId}`);
     
     // 如果用户没有自己的题目，尝试加载全局题目
@@ -39,7 +40,7 @@ export default function Exam() {
         toast.error('加载题目失败');
       }
     }
-  }, []);
+  }, [currentUser]);
   
   // 开始考试
   const startExam = () => {
@@ -153,19 +154,15 @@ export default function Exam() {
       questions: updatedQuestions
     };
     
-    // 获取当前用户信息
-    const currentUserId = localStorage.getItem('currentUserId');
-    const currentUser = JSON.parse(localStorage.getItem('users') || '[]').find((user: any) => user.id === currentUserId);
-    
     // 更新考试会话，添加用户信息
     const userExamSession = {
       ...updatedSession,
-      userId: currentUserId || 'anonymous',
+      userId: currentUser?.id || 'anonymous',
       username: currentUser?.username || '匿名用户'
     };
     
     // 保存考试结果到用户的考试历史
-    const userId = currentUserId || 'anonymous';
+    const userId = currentUser?.id || 'anonymous';
     const userExamHistory = JSON.parse(localStorage.getItem(`examHistory_${userId}`) || '[]');
     userExamHistory.push(userExamSession);
     localStorage.setItem(`examHistory_${userId}`, JSON.stringify(userExamHistory));

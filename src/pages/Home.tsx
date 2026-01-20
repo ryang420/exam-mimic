@@ -28,12 +28,16 @@ export default function Home() {
   
   // 加载用户统计数据
   useEffect(() => {
-    if (currentUser) {
-      loadUserStats();
-      if (currentUser.isAdmin) {
-        loadGlobalStats();
+    const loadStats = async () => {
+      if (currentUser) {
+        loadUserStats();
+        if (currentUser.isAdmin) {
+          await loadGlobalStats();
+        }
       }
-    }
+    };
+
+    loadStats();
   }, [currentUser, showGlobalStats]);
   
   // 加载用户统计数据
@@ -64,13 +68,12 @@ export default function Home() {
   };
   
   // 加载全局统计数据
-  const loadGlobalStats = () => {
-    const allUsers = getAllUsers();
+  const loadGlobalStats = async () => {
+    const allUsers = await getAllUsers();
     const globalExamHistory = JSON.parse(localStorage.getItem('examHistory_global') || '[]');
     
     // 计算总题目数
-    const currentUserId = localStorage.getItem('currentUserId');
-    const userId = currentUserId || 'default';
+    const userId = currentUser?.id || 'default';
     const savedQuestions = localStorage.getItem(`questions_${userId}`) || localStorage.getItem('questions_global');
     const totalQuestions = savedQuestions ? JSON.parse(savedQuestions).length : 0;
     

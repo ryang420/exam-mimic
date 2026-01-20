@@ -9,15 +9,15 @@ export default function Register() {
   const { theme, toggleTheme } = useTheme();
   const { register } = useContext(AuthContext);
   const navigate = useNavigate();
-  const [username, setUsername] = useState('');
+  const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   
-  const handleRegister = (e: React.FormEvent) => {
+  const handleRegister = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    if (!username || !password || !confirmPassword) {
+    if (!email || !password || !confirmPassword) {
       toast.error('请填写所有字段');
       return;
     }
@@ -35,18 +35,15 @@ export default function Register() {
     setIsLoading(true);
     
     try {
-      // 模拟注册过程延迟
-      setTimeout(() => {
-        const success = register(username, password);
-        
-        if (success) {
-          toast.success('注册成功！请登录');
-          navigate('/login');
-        } else {
-          toast.error('用户名已存在');
-        }
-        setIsLoading(false);
-      }, 500);
+      const success = await register(email, password);
+      
+      if (success) {
+        toast.success('注册成功！请登录');
+        navigate('/login');
+      } else {
+        toast.error('邮箱已注册');
+      }
+      setIsLoading(false);
     } catch (error) {
       toast.error('注册失败，请重试');
       setIsLoading(false);
@@ -73,20 +70,20 @@ export default function Register() {
           
           <form onSubmit={handleRegister}>
             <div className="mb-6">
-              <label htmlFor="username" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                用户名
+              <label htmlFor="email" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                邮箱
               </label>
               <div className="relative">
                 <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
                   <i className="fa-solid fa-user text-gray-400"></i>
                 </div>
                 <input
-                  id="username"
-                  type="text"
-                  value={username}
-                  onChange={(e) => setUsername(e.target.value)}
+                  id="email"
+                  type="email"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
                   className="block w-full pl-10 pr-3 py-3 bg-gray-50 dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                  placeholder="请输入用户名"
+                  placeholder="请输入邮箱"
                   required
                 />
               </div>

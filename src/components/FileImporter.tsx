@@ -34,12 +34,12 @@ export const FileImporter: React.FC<FileImporterProps> = ({ onImport }) => {
           const number = numberMatch ? parseInt(numberMatch[1], 10) : (index + 1);
           
           // 提取题干 - 改进的正则表达式，适应可能的格式变化
-          const questionMatch = trimmedBlock.match(/\*\*Question\*\*\s*([\s\S]*?)(?=\*\*Options\*\*|\*\*Correct Answer\*\*|\*\*Explanation\*\*|\-\-\-|$)/i);
+          const questionMatch = trimmedBlock.match(/\*\*Question\*\*\s*([\s\S]*?)(?=\*\*Options\*\*|\*\*Correct Answer\*\*|\*\*Explanation\*\*|\-\-\-|\Z)/i);
           const questionText = questionMatch ? questionMatch[1].trim() : '';
           
           // 提取选项 - 改进的正则表达式
           const options: Record<string, string> = {};
-          const optionsMatch = trimmedBlock.match(/\*\*Options\*\*\s*([\s\S]*?)(?=\*\*Correct Answer\*\*|\*\*Explanation\*\*|\-\-\-|$)/i);
+          const optionsMatch = trimmedBlock.match(/\*\*Options\*\*\s*([\s\S]*?)(?=\*\*Correct Answer\*\*|\*\*Explanation\*\*|\-\-\-|\Z)/i);
           
           if (optionsMatch) {
             const optionsText = optionsMatch[1].trim();
@@ -59,7 +59,7 @@ export const FileImporter: React.FC<FileImporterProps> = ({ onImport }) => {
           }
           
           // 提取正确答案 - 改进的正则表达式
-          const answerMatch = trimmedBlock.match(/\*\*Correct Answer\*\*\s*([\s\S]*?)(?=\*\*Explanation\*\*|\-\-\-|$)/i);
+          const answerMatch = trimmedBlock.match(/\*\*Correct Answer\*\*\s*([\s\S]*?)(?=\*\*Explanation\*\*|\-\-\-|\Z)/i);
           let correctAnswers: string[] = [];
           
           if (answerMatch) {
@@ -79,7 +79,7 @@ export const FileImporter: React.FC<FileImporterProps> = ({ onImport }) => {
           }
           
           // 提取解析 - 改进的正则表达式
-          const explanationMatch = trimmedBlock.match(/\*\*Explanation\*\*\s*([\s\S]*?)(?=\-\-\-|$)/i);
+          const explanationMatch = trimmedBlock.match(/\*\*Explanation\*\*\s*([\s\S]*?)(?=\-\-\-|\Z)/i);
           const explanation = explanationMatch ? explanationMatch[1].trim() : '';
           
           console.log(`题目 ${number} 解析结果: 题干=${!!questionText}, 选项数=${Object.keys(options).length}, 正确答案数=${correctAnswers.length}`);

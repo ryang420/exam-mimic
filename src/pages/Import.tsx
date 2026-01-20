@@ -1,20 +1,21 @@
-import React, { useState } from 'react';
+import React, { useState, useContext } from 'react';
 import { FileImporter } from '@/components/FileImporter';
 import { QuestionCard } from '@/components/QuestionCard';
 import { Question } from '@/types';
 import { toast } from 'sonner';
 import { useTheme } from '@/hooks/useTheme';
 import { Link } from 'react-router-dom';
+import { AuthContext } from '@/contexts/authContext';
 
 export default function Import() {
   const { theme, toggleTheme } = useTheme();
+  const { currentUser } = useContext(AuthContext);
   const [importedQuestions, setImportedQuestions] = useState<Question[]>([]);
   const [showPreview, setShowPreview] = useState(false);
   
   // 从localStorage加载已保存的题目
   React.useEffect(() => {
-    const currentUserId = localStorage.getItem('currentUserId');
-    const userId = currentUserId || 'default';
+    const userId = currentUser?.id || 'default';
     const savedQuestions = localStorage.getItem(`questions_${userId}`);
     
     // 如果用户有自己的题目，加载用户自己的题目
@@ -26,20 +27,17 @@ export default function Import() {
       }
     } 
     // 否则，如果是管理员，加载全局题目
-    else if (currentUserId) {
-      const currentUser = JSON.parse(localStorage.getItem('users') || '[]').find((user: any) => user.id === currentUserId);
-      if (currentUser?.isAdmin) {
-        const globalQuestions = localStorage.getItem('questions_global');
-        if (globalQuestions) {
-          try {
-            setImportedQuestions(JSON.parse(globalQuestions));
-          } catch (error) {
-            console.error('加载全局题目失败:', error);
-          }
+    else if (currentUser?.isAdmin) {
+      const globalQuestions = localStorage.getItem('questions_global');
+      if (globalQuestions) {
+        try {
+          setImportedQuestions(JSON.parse(globalQuestions));
+        } catch (error) {
+          console.error('加载全局题目失败:', error);
         }
       }
     }
-  }, []);
+  }, [currentUser]);
   
   // 处理文件导入
   const handleImport = (questions: Question[]) => {
@@ -72,16 +70,12 @@ export default function Import() {
     updatedQuestions.sort((a, b) => a.number - b.number);
     
     // 保存到localStorage（按用户隔离）
-    const currentUserId = localStorage.getItem('currentUserId');
-    const userId = currentUserId || 'default';
+    const userId = currentUser?.id || 'default';
     localStorage.setItem(`questions_${userId}`, JSON.stringify(updatedQuestions));
     
     // 如果是管理员，也保存到全局题库
-    if (currentUserId) {
-      const currentUser = JSON.parse(localStorage.getItem('users') || '[]').find((user: any) => user.id === currentUserId);
-      if (currentUser?.isAdmin) {
-        localStorage.setItem('questions_global', JSON.stringify(updatedQuestions));
-      }
+    if (currentUser?.isAdmin) {
+      localStorage.setItem('questions_global', JSON.stringify(updatedQuestions));
     }
     
     // 更新状态
@@ -94,16 +88,12 @@ export default function Import() {
   // 清除所有题目
   const handleClearAll = () => {
     if (window.confirm('确定要删除所有题目吗？此操作不可恢复。')) {
-      const currentUserId = localStorage.getItem('currentUserId');
-      const userId = currentUserId || 'default';
+      const userId = currentUser?.id || 'default';
       localStorage.removeItem(`questions_${userId}`);
       
       // 如果是管理员，也清除全局题目
-      if (currentUserId) {
-        const currentUser = JSON.parse(localStorage.getItem('users') || '[]').find((user: any) => user.id === currentUserId);
-        if (currentUser?.isAdmin) {
-          localStorage.removeItem('questions_global');
-        }
+      if (currentUser?.isAdmin) {
+        localStorage.removeItem('questions_global');
       }
       
       setImportedQuestions([]);

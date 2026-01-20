@@ -1,13 +1,15 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useContext } from 'react';
 import { QuestionCard } from '@/components/QuestionCard';
 import { ExamSession, Question } from '@/types';
 import { useTheme } from '@/hooks/useTheme';
 import { Link } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { PieChart, Pie, Cell, ResponsiveContainer } from 'recharts';
+import { AuthContext } from '@/contexts/authContext';
 
 export default function Results() {
   const { theme, toggleTheme } = useTheme();
+  const { currentUser } = useContext(AuthContext);
   const [examResult, setExamResult] = useState<ExamSession | null>(null);
   const [questions, setQuestions] = useState<Question[]>([]);
   const [showIncorrectOnly, setShowIncorrectOnly] = useState(false);
@@ -15,8 +17,7 @@ export default function Results() {
   // 从localStorage加载考试结果和题目
   useEffect(() => {
     const savedResult = localStorage.getItem('currentExamResult');
-    const currentUserId = localStorage.getItem('currentUserId');
-    const userId = currentUserId || 'anonymous';
+    const userId = currentUser?.id || 'anonymous';
     
     // 尝试加载用户自己的题目，如果没有则加载全局题目
     let savedQuestions = localStorage.getItem(`questions_${userId}`);
@@ -47,7 +48,7 @@ export default function Results() {
         console.error('加载考试结果失败:', error);
       }
     }
-  }, []);
+  }, [currentUser]);
   
   // 计算统计数据
   const getStats = () => {

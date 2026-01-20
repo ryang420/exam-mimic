@@ -1,20 +1,21 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useContext } from 'react';
 import { QuestionCard } from '@/components/QuestionCard';
 import { Question } from '@/types';
 import { toast } from 'sonner';
 import { useTheme } from '@/hooks/useTheme';
 import { Link } from 'react-router-dom';
+import { AuthContext } from '@/contexts/authContext';
 
 export default function Questions() {
   const { theme, toggleTheme } = useTheme();
+  const { currentUser } = useContext(AuthContext);
   const [questions, setQuestions] = useState<Question[]>([]);
   const [searchTerm, setSearchTerm] = useState('');
   const [filteredQuestions, setFilteredQuestions] = useState<Question[]>([]);
   
   // 从localStorage加载题目
   useEffect(() => {
-    const currentUserId = localStorage.getItem('currentUserId');
-    const userId = currentUserId || 'default';
+    const userId = currentUser?.id || 'default';
     const savedQuestions = localStorage.getItem(`questions_${userId}`);
     
     // 如果用户有自己的题目，加载用户自己的题目
@@ -29,23 +30,20 @@ export default function Questions() {
       }
     } 
     // 否则，如果是管理员，加载全局题目
-    else if (currentUserId) {
-      const currentUser = JSON.parse(localStorage.getItem('users') || '[]').find((user: any) => user.id === currentUserId);
-      if (currentUser?.isAdmin) {
-        const globalQuestions = localStorage.getItem('questions_global');
-        if (globalQuestions) {
-          try {
-            const parsedQuestions = JSON.parse(globalQuestions);
-            setQuestions(parsedQuestions);
-            setFilteredQuestions(parsedQuestions);
-          } catch (error) {
-            console.error('加载全局题目失败:', error);
-            toast.error('加载题目失败');
-          }
+    else if (currentUser?.isAdmin) {
+      const globalQuestions = localStorage.getItem('questions_global');
+      if (globalQuestions) {
+        try {
+          const parsedQuestions = JSON.parse(globalQuestions);
+          setQuestions(parsedQuestions);
+          setFilteredQuestions(parsedQuestions);
+        } catch (error) {
+          console.error('加载全局题目失败:', error);
+          toast.error('加载题目失败');
         }
       }
     }
-  }, []);
+  }, [currentUser]);
   
   // 过滤题目
   useEffect(() => {
@@ -71,18 +69,14 @@ export default function Questions() {
   const handleDeleteQuestion = (id: string) => {
     if (window.confirm('确定要删除这道题目吗？')) {
       const updatedQuestions = questions.filter(q => q.id !== id);
-      const currentUserId = localStorage.getItem('currentUserId');
-      const userId = currentUserId || 'default';
+      const userId = currentUser?.id || 'default';
       localStorage.setItem(`questions_${userId}`, JSON.stringify(updatedQuestions));
       
       // 如果是管理员，也更新全局题目
-      if (currentUserId) {
-        const currentUser = JSON.parse(localStorage.getItem('users') || '[]').find((user: any) => user.id === currentUserId);
-        if (currentUser?.isAdmin) {
-          const globalQuestions = JSON.parse(localStorage.getItem('questions_global') || '[]');
-          const updatedGlobalQuestions = globalQuestions.filter((q: any) => q.id !== id);
-          localStorage.setItem('questions_global', JSON.stringify(updatedGlobalQuestions));
-        }
+      if (currentUser?.isAdmin) {
+        const globalQuestions = JSON.parse(localStorage.getItem('questions_global') || '[]');
+        const updatedGlobalQuestions = globalQuestions.filter((q: any) => q.id !== id);
+        localStorage.setItem('questions_global', JSON.stringify(updatedGlobalQuestions));
       }
       
       setQuestions(updatedQuestions);
@@ -93,16 +87,12 @@ export default function Questions() {
   // 清空所有题目
   const handleClearAll = () => {
     if (window.confirm('确定要删除所有题目吗？此操作不可恢复。')) {
-      const currentUserId = localStorage.getItem('currentUserId');
-      const userId = currentUserId || 'default';
+      const userId = currentUser?.id || 'default';
       localStorage.removeItem(`questions_${userId}`);
       
       // 如果是管理员，也清除全局题目
-      if (currentUserId) {
-        const currentUser = JSON.parse(localStorage.getItem('users') || '[]').find((user: any) => user.id === currentUserId);
-        if (currentUser?.isAdmin) {
-          localStorage.removeItem('questions_global');
-        }
+      if (currentUser?.isAdmin) {
+        localStorage.removeItem('questions_global');
       }
       
       setQuestions([]);
