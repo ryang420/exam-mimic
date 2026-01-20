@@ -23,7 +23,7 @@ export function useTheme() {
         .from('profiles')
         .select('theme')
         .eq('id', userId)
-        .single();
+        .maybeSingle();
 
       if (!isMounted) return;
       if (!error && data?.theme) {

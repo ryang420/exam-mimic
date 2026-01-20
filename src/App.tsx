@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { Routes, Route, useNavigate, Navigate } from 'react-router-dom';
 import { AuthContext, User } from './contexts/authContext';
 import { supabase } from './lib/supabase';
@@ -41,13 +41,39 @@ const fetchProfile = async (userId: string) => {
     .from('profiles')
     .select('id, username, is_admin, created_at, theme, migration_completed')
     .eq('id', userId)
-    .single();
+    .maybeSingle();
 
   if (error) {
     return null;
   }
 
-  return data as ProfileRow;
+  return data as ProfileRow | null;
+};
+
+const ensureProfile = async (authUser: any) => {
+  if (!authUser?.id) {
+    return null;
+  }
+
+  let profile = await fetchProfile(authUser.id);
+  if (profile) {
+    return profile;
+  }
+
+  const email = authUser?.email ?? '';
+  const username = email.includes('@') ? email.split('@')[0] : email;
+
+  await supabase.from('profiles').upsert(
+    {
+      id: authUser.id,
+      username,
+      is_admin: false
+    },
+    { onConflict: 'id' }
+  );
+
+  profile = await fetchProfile(authUser.id);
+  return profile;
 };
 
 const migrateLocalStorageData = async (user: User, profile?: ProfileRow | null) => {
@@ -185,7 +211,7 @@ function App() {
     const initAuth = async () => {
       const { data } = await supabase.auth.getSession();
       if (data.session?.user) {
-        const profile = await fetchProfile(data.session.user.id);
+        const profile = await ensureProfile(data.session.user);
         if (isMounted) {
           setIsAuthenticated(true);
           setCurrentUser(buildUser(data.session.user, profile));
@@ -207,7 +233,7 @@ function App() {
     const { data: authListener } = supabase.auth.onAuthStateChange(async (_event, session) => {
       if (!isMounted) return;
       if (session?.user) {
-        const profile = await fetchProfile(session.user.id);
+        const profile = await ensureProfile(session.user);
         setIsAuthenticated(true);
         setCurrentUser(buildUser(session.user, profile));
         migrateLocalStorageData(buildUser(session.user, profile), profile);
@@ -235,7 +261,7 @@ function App() {
       return false;
     }
 
-    const profile = await fetchProfile(data.user.id);
+    const profile = await ensureProfile(data.user);
     setIsAuthenticated(true);
     setCurrentUser(buildUser(data.user, profile));
     return true;
