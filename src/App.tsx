@@ -313,9 +313,9 @@ function App() {
           <Route
             path="/"
             element={
-              authReady ? (
-                isAuthenticated ? <Home /> : <Navigate to="/login" replace />
-              ) : null
+              authReady
+                ? (isAuthenticated ? <Home /> : <Navigate to="/login" replace />)
+                : <Login />
             }
           />
           <Route path="/login" element={<Login />} />
