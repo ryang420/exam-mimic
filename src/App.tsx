@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { useTranslation } from 'react-i18next';
 import { Routes, Route, useNavigate, Navigate } from 'react-router-dom';
 import { AuthContext, User } from './contexts/authContext';
 import { supabase } from './lib/supabase';
@@ -198,6 +199,7 @@ const migrateLocalStorageData = async (user: User, profile?: ProfileRow | null) 
 function App() {
   const { theme } = useTheme();
   const navigate = useNavigate();
+  const { t, i18n } = useTranslation();
   
   // 认证状态
   const [isAuthenticated, setIsAuthenticated] = useState(false);
@@ -249,6 +251,12 @@ function App() {
       authListener.subscription.unsubscribe();
     };
   }, []);
+
+  useEffect(() => {
+    if (typeof document !== 'undefined') {
+      document.title = t('common.appName');
+    }
+  }, [t, i18n.language]);
   
   // 登录函数
   const login = async (email: string, password: string): Promise<boolean> => {
