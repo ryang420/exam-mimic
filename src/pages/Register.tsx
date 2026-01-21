@@ -4,11 +4,14 @@ import { toast } from 'sonner';
 import { useTheme } from '@/hooks/useTheme';
 import { Link, useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
+import { useTranslation } from 'react-i18next';
+import { LanguageSwitcher } from '@/components/LanguageSwitcher';
 
 export default function Register() {
   const { theme, toggleTheme } = useTheme();
   const { register } = useContext(AuthContext);
   const navigate = useNavigate();
+  const { t } = useTranslation();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
@@ -18,17 +21,17 @@ export default function Register() {
     e.preventDefault();
     
     if (!email || !password || !confirmPassword) {
-      toast.error('请填写所有字段');
+      toast.error(t('auth.register.toastMissing'));
       return;
     }
     
     if (password !== confirmPassword) {
-      toast.error('两次输入的密码不一致');
+      toast.error(t('auth.register.toastMismatch'));
       return;
     }
     
     if (password.length < 6) {
-      toast.error('密码长度至少为6位');
+      toast.error(t('auth.register.toastTooShort'));
       return;
     }
     
@@ -38,14 +41,14 @@ export default function Register() {
       const success = await register(email, password);
       
       if (success) {
-        toast.success('注册成功！请登录');
+        toast.success(t('auth.register.toastSuccess'));
         navigate('/login');
       } else {
-        toast.error('邮箱已注册');
+        toast.error(t('auth.register.toastExists'));
       }
       setIsLoading(false);
     } catch (error) {
-      toast.error('注册失败，请重试');
+      toast.error(t('auth.register.toastFail'));
       setIsLoading(false);
     }
   };
@@ -56,7 +59,7 @@ export default function Register() {
         <div className="flex items-center justify-center mb-8">
           <h1 className="text-3xl font-bold text-blue-600 dark:text-blue-400">
             <i className="fa-solid fa-graduation-cap mr-2"></i>
-            模拟考试系统
+            {t('common.appName')}
           </h1>
         </div>
         
@@ -66,12 +69,12 @@ export default function Register() {
           transition={{ duration: 0.3 }}
           className="bg-white dark:bg-gray-800 rounded-2xl shadow-lg border border-gray-100 dark:border-gray-700 p-8"
         >
-          <h2 className="text-2xl font-bold text-center mb-6">用户注册</h2>
+          <h2 className="text-2xl font-bold text-center mb-6">{t('auth.register.title')}</h2>
           
           <form onSubmit={handleRegister}>
             <div className="mb-6">
               <label htmlFor="email" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                邮箱
+                {t('auth.register.email')}
               </label>
               <div className="relative">
                 <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
@@ -83,7 +86,7 @@ export default function Register() {
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
                   className="block w-full pl-10 pr-3 py-3 bg-gray-50 dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                  placeholder="请输入邮箱"
+                  placeholder={t('auth.register.emailPlaceholder')}
                   required
                 />
               </div>
@@ -91,7 +94,7 @@ export default function Register() {
             
             <div className="mb-6">
               <label htmlFor="password" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                密码
+                {t('auth.register.password')}
               </label>
               <div className="relative">
                 <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
@@ -103,7 +106,7 @@ export default function Register() {
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                   className="block w-full pl-10 pr-3 py-3 bg-gray-50 dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                  placeholder="请输入密码"
+                  placeholder={t('auth.register.passwordPlaceholder')}
                   required
                 />
               </div>
@@ -111,7 +114,7 @@ export default function Register() {
             
             <div className="mb-8">
               <label htmlFor="confirmPassword" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                确认密码
+                {t('auth.register.confirmPassword')}
               </label>
               <div className="relative">
                 <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
@@ -123,7 +126,7 @@ export default function Register() {
                   value={confirmPassword}
                   onChange={(e) => setConfirmPassword(e.target.value)}
                   className="block w-full pl-10 pr-3 py-3 bg-gray-50 dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                  placeholder="请再次输入密码"
+                  placeholder={t('auth.register.confirmPlaceholder')}
                   required
                 />
               </div>
@@ -139,12 +142,12 @@ export default function Register() {
               {isLoading ? (
                 <>
                   <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin mr-2"></div>
-                  注册中...
+                  {t('auth.register.submitting')}
                 </>
               ) : (
                 <>
                   <i className="fa-solid fa-user-plus mr-2"></i>
-                  注册
+                  {t('auth.register.submit')}
                 </>
               )}
             </motion.button>
@@ -152,16 +155,17 @@ export default function Register() {
           
           <div className="mt-6 text-center">
             <p className="text-gray-600 dark:text-gray-400">
-              已有账号？ <Link to="/login" className="text-blue-600 dark:text-blue-400 hover:underline">立即登录</Link>
+              {t('auth.register.haveAccount')} <Link to="/login" className="text-blue-600 dark:text-blue-400 hover:underline">{t('auth.register.loginNow')}</Link>
             </p>
           </div>
         </motion.div>
         
-        <div className="mt-8 flex justify-center">
+        <div className="mt-8 flex justify-center gap-3">
+          <LanguageSwitcher className="p-2 rounded-full bg-gray-100 dark:bg-gray-700 transition-colors" />
           <button
             onClick={toggleTheme}
             className="p-2 rounded-full bg-gray-100 dark:bg-gray-700 transition-colors"
-            aria-label={theme === 'light' ? '切换到暗色模式' : '切换到亮色模式'}
+            aria-label={theme === 'light' ? t('common.switchToDark') : t('common.switchToLight')}
           >
             {theme === 'light' ? (
               <i className="fa-solid fa-moon"></i>

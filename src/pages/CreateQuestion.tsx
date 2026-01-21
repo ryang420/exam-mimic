@@ -6,6 +6,8 @@ import { Link } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { AuthContext } from '@/contexts/authContext';
 import { supabase } from '@/lib/supabase';
+import { useTranslation } from 'react-i18next';
+import { LanguageSwitcher } from '@/components/LanguageSwitcher';
 
 // 生成下一个选项字母（A, B, C, ..., Z, AA, AB, ...）
 const getNextOptionKey = (currentKeys: string[]): string => {
@@ -46,6 +48,7 @@ const getNextOptionKey = (currentKeys: string[]): string => {
 export default function CreateQuestion() {
   const { theme, toggleTheme } = useTheme();
   const { currentUser } = useContext(AuthContext);
+  const { t } = useTranslation();
   const [question, setQuestion] = useState('');
   const [options, setOptions] = useState<Record<string, string>>({
     A: '',
@@ -80,7 +83,7 @@ export default function CreateQuestion() {
   const deleteOption = (key: string) => {
     // 不能删除所有选项
     if (Object.keys(options).length <= 1) {
-      toast.error('至少需要保留一个选项');
+      toast.error(t('createQuestion.toast.needOption'));
       return;
     }
     
@@ -112,25 +115,25 @@ export default function CreateQuestion() {
   // 验证表单
   const validateForm = (): boolean => {
     if (!question.trim()) {
-      toast.error('请输入题目内容');
+      toast.error(t('createQuestion.toast.missingQuestion'));
       return false;
     }
     
     const hasValidOptions = Object.values(options).some(option => option.trim() !== '');
     if (!hasValidOptions) {
-      toast.error('请至少输入一个选项');
+      toast.error(t('createQuestion.toast.missingOption'));
       return false;
     }
     
     if (correctAnswers.length === 0) {
-      toast.error('请选择正确答案');
+      toast.error(t('createQuestion.toast.missingCorrect'));
       return false;
     }
     
     // 检查所有正确答案是否都有对应的非空选项
     for (const answer of correctAnswers) {
       if (!options[answer]?.trim()) {
-        toast.error('正确答案对应的选项不能为空');
+        toast.error(t('createQuestion.toast.correctEmpty'));
         return false;
       }
     }
@@ -148,7 +151,7 @@ export default function CreateQuestion() {
     
     try {
       if (!currentUser?.id) {
-        toast.error('请先登录');
+        toast.error(t('createQuestion.toast.loginFirst'));
         return;
       }
 
@@ -199,19 +202,19 @@ export default function CreateQuestion() {
       const { error } = await supabase.from('questions').insert(questionRow);
       if (error) {
         console.error('保存题目失败:', error);
-        toast.error('保存题目失败，请重试');
+      toast.error(t('createQuestion.toast.saveFail'));
         return;
       }
       
       // 显示成功消息
-      toast.success(`题目 #${newQuestion.number} 创建成功！`);
+      toast.success(t('createQuestion.toast.created', { number: newQuestion.number }));
       
       // 重置表单
       resetForm();
       
     } catch (error) {
       console.error('保存题目失败:', error);
-      toast.error('保存题目失败，请重试');
+      toast.error(t('createQuestion.toast.saveFail'));
     } finally {
       setIsSubmitting(false);
     }
@@ -251,13 +254,14 @@ export default function CreateQuestion() {
         <div className="container mx-auto px-4 py-4 flex justify-between items-center">
           <h1 className="text-2xl font-bold text-blue-600 dark:text-blue-400">
             <i className="fa-solid fa-graduation-cap mr-2"></i>
-            模拟考试系统
+            {t('common.appName')}
           </h1>
           <div className="flex items-center space-x-4">
+            <LanguageSwitcher className="p-2 rounded-full bg-gray-100 dark:bg-gray-700 transition-colors" />
             <button
               onClick={toggleTheme}
               className="p-2 rounded-full bg-gray-100 dark:bg-gray-700 transition-colors"
-              aria-label={theme === 'light' ? '切换到暗色模式' : '切换到亮色模式'}
+              aria-label={theme === 'light' ? t('common.switchToDark') : t('common.switchToLight')}
             >
               {theme === 'light' ? (
                 <i className="fa-solid fa-moon"></i>
@@ -274,14 +278,14 @@ export default function CreateQuestion() {
         <div className="max-w-3xl mx-auto">
           <div className="flex items-center justify-between mb-8">
             <div>
-              <h2 className="text-3xl font-bold mb-2">创建题目</h2>
-              <p className="text-gray-600 dark:text-gray-400">手动创建新题目并添加到您的题库</p>
+              <h2 className="text-3xl font-bold mb-2">{t('createQuestion.title')}</h2>
+              <p className="text-gray-600 dark:text-gray-400">{t('createQuestion.subtitle')}</p>
             </div>
             <Link
               to="/questions"
               className="px-4 py-2 bg-gray-200 dark:bg-gray-700 hover:bg-gray-300 dark:hover:bg-gray-600 rounded-lg transition-colors"
             >
-              <i className="fa-solid fa-arrow-left mr-1"></i> 返回题库
+              <i className="fa-solid fa-arrow-left mr-1"></i> {t('common.backQuestionBank')}
             </Link>
           </div>
           
@@ -296,13 +300,13 @@ export default function CreateQuestion() {
               {/* 题目内容 */}
               <div className="mb-6">
                 <label htmlFor="question" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                  题目内容
+                  {t('createQuestion.questionLabel')}
                 </label>
                 <textarea
                   id="question"
                   value={question}
                   onChange={(e) => setQuestion(e.target.value)}
-                  placeholder="请输入题目内容..."
+                  placeholder={t('createQuestion.questionPlaceholder')}
                   className="w-full px-4 py-3 rounded-xl bg-gray-50 dark:bg-gray-700 border border-gray-200 dark:border-gray-600 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent h-32 resize-y"
                   required
                 ></textarea>
@@ -312,7 +316,7 @@ export default function CreateQuestion() {
               <div className="mb-6">
                 <div className="flex items-center justify-between mb-3">
                   <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
-                    选项
+                    {t('createQuestion.optionsLabel')}
                   </label>
                   <motion.button
                     whileHover={{ scale: 1.02 }}
@@ -321,7 +325,7 @@ export default function CreateQuestion() {
                     onClick={addOption}
                     className="px-3 py-1.5 bg-blue-100 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 rounded-lg hover:bg-blue-200 dark:hover:bg-blue-900/50 transition-colors text-sm flex items-center"
                   >
-                    <i className="fa-solid fa-plus mr-1"></i> 添加选项
+                    <i className="fa-solid fa-plus mr-1"></i> {t('createQuestion.addOption')}
                   </motion.button>
                 </div>
                 
@@ -335,7 +339,7 @@ export default function CreateQuestion() {
                         type="text"
                         value={value}
                         onChange={(e) => handleOptionChange(key, e.target.value)}
-                        placeholder={`选项 ${key}`}
+                        placeholder={t('createQuestion.optionPlaceholder', { key })}
                         className="flex-1 px-4 py-3 rounded-xl bg-gray-50 dark:bg-gray-700 border border-gray-200 dark:border-gray-600 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                       />
                       {Object.keys(options).length > 1 && (
@@ -345,7 +349,7 @@ export default function CreateQuestion() {
                           type="button"
                           onClick={() => deleteOption(key)}
                           className="p-2 text-gray-500 hover:text-red-500 transition-colors rounded-full hover:bg-gray-100 dark:hover:bg-gray-700"
-                          aria-label={`删除选项 ${key}`}
+                          aria-label={t('createQuestion.deleteOption', { key })}
                         >
                           <i className="fa-solid fa-trash"></i>
                         </motion.button>
@@ -358,7 +362,8 @@ export default function CreateQuestion() {
               {/* 正确答案 */}
               <div className="mb-6">
                 <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-3">
-                  正确答案 <span className="text-blue-500 dark:text-blue-400 text-xs">(可多选)</span>
+                  {t('createQuestion.correctLabel')}{' '}
+                  <span className="text-blue-500 dark:text-blue-400 text-xs">({t('createQuestion.correctHint')})</span>
                 </label>
                 <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3">
                   {Object.keys(options).map((key) => (
@@ -376,14 +381,14 @@ export default function CreateQuestion() {
                             : 'bg-gray-50 dark:bg-gray-700 border border-gray-200 dark:border-gray-600 text-gray-800 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-600'
                         }`}
                       >
-                        选项 {key}
+                        {t('createQuestion.correctOption', { key })}
                       </button>
                     </motion.div>
                   ))}
                 </div>
                 {correctAnswers.length > 0 && (
                   <div className="mt-3 text-sm text-gray-500 dark:text-gray-400">
-                    已选择: {correctAnswers.sort().join(', ')}
+                    {t('createQuestion.selected', { answers: correctAnswers.sort().join(', ') })}
                   </div>
                 )}
               </div>
@@ -391,13 +396,13 @@ export default function CreateQuestion() {
               {/* 解析 */}
               <div className="mb-8">
                 <label htmlFor="explanation" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                  解析（可选）
+                  {t('createQuestion.explanationLabel')}
                 </label>
                 <textarea
                   id="explanation"
                   value={explanation}
                   onChange={(e) => setExplanation(e.target.value)}
-                  placeholder="请输入题目的详细解析..."
+                  placeholder={t('createQuestion.explanationPlaceholder')}
                   className="w-full px-4 py-3 rounded-xl bg-gray-50 dark:bg-gray-700 border border-gray-200 dark:border-gray-600 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent h-32 resize-y"
                 ></textarea>
               </div>
@@ -415,12 +420,12 @@ export default function CreateQuestion() {
                   {isSubmitting ? (
                     <>
                       <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin mr-2"></div>
-                      保存中...
+                      {t('createQuestion.saving')}
                     </>
                   ) : (
                     <>
                       <i className="fa-solid fa-plus mr-2"></i>
-                      保存并创建另一题
+                      {t('createQuestion.saveAndAdd')}
                     </>
                   )}
                 </motion.button>
@@ -436,12 +441,12 @@ export default function CreateQuestion() {
                   {isSubmitting ? (
                     <>
                       <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin mr-2"></div>
-                      保存中...
+                      {t('createQuestion.saving')}
                     </>
                   ) : (
                     <>
                       <i className="fa-solid fa-check mr-2"></i>
-                      保存并完成
+                      {t('createQuestion.saveAndFinish')}
                     </>
                   )}
                 </motion.button>
@@ -464,20 +469,20 @@ export default function CreateQuestion() {
           <div className="mt-8 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-xl p-4">
             <h4 className="font-semibold text-blue-800 dark:text-blue-400 mb-2 flex items-center">
               <i className="fa-solid fa-circle-info mr-2"></i>
-              创建题目提示
+              {t('createQuestion.tipsTitle')}
             </h4>
             <ul className="text-blue-700 dark:text-blue-300 space-y-2">
               <li className="flex items-start">
                 <i className="fa-solid fa-check-circle mt-1 mr-2"></i>
-                <span>题目创建后将自动保存到您的题库中</span>
+                <span>{t('createQuestion.tips.saved')}</span>
               </li>
               <li className="flex items-start">
                 <i className="fa-solid fa-check-circle mt-1 mr-2"></i>
-                <span>您可以创建多个选项，但至少需要选择一个正确答案</span>
+                <span>{t('createQuestion.tips.multiOptions')}</span>
               </li>
               <li className="flex items-start">
                 <i className="fa-solid fa-check-circle mt-1 mr-2"></i>
-                <span>解析内容有助于在考试后理解题目</span>
+                <span>{t('createQuestion.tips.explanation')}</span>
               </li>
             </ul>
           </div>
@@ -487,7 +492,7 @@ export default function CreateQuestion() {
       {/* 页脚 */}
       <footer className="bg-gray-100 dark:bg-gray-800 border-t border-gray-200 dark:border-gray-700 py-8 mt-16">
         <div className="container mx-auto px-4 text-center text-gray-600 dark:text-gray-400">
-          <p>© 2026 模拟考试系统 | 设计与开发</p>
+          <p>{t('footer.copyright')}</p>
         </div>
       </footer>
     </div>

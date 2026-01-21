@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from 'react';
+import { useTranslation } from 'react-i18next';
 
 interface ExamTimerProps {
   durationInMinutes: number;
@@ -11,6 +12,7 @@ export const ExamTimer: React.FC<ExamTimerProps> = ({
   onTimeUp,
   isRunning
 }) => {
+  const { t } = useTranslation();
   const [timeRemaining, setTimeRemaining] = useState(durationInMinutes * 60);
   
   useEffect(() => {
@@ -71,7 +73,7 @@ export const ExamTimer: React.FC<ExamTimerProps> = ({
         ></div>
       </div>
       <div className="ml-4 text-sm text-gray-600 dark:text-gray-400">
-        剩余时间
+        {t('examTimer.remaining')}
       </div>
     </div>
   );

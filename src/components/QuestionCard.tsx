@@ -1,6 +1,7 @@
 import React from 'react';
 import { Question } from '@/types';
 import { motion } from 'framer-motion';
+import { useTranslation } from 'react-i18next';
 
 interface QuestionCardProps {
   question: Question;
@@ -17,6 +18,7 @@ export const QuestionCard: React.FC<QuestionCardProps> = ({
   isEditable = false,
   userAnswer = null
 }) => {
+  const { t } = useTranslation();
   // 判断用户答案是否正确
   const isCorrect = userAnswer !== null && 
     Array.isArray(question.correctAnswer) &&
@@ -65,18 +67,19 @@ export const QuestionCard: React.FC<QuestionCardProps> = ({
             {question.number}
           </span>
           <h3 className="font-semibold text-gray-800 dark:text-gray-200">
-            问题 #{question.number}
+            {t('questionCard.questionLabel')} #{question.number}
             {question.isMultipleChoice && (
               <span className="ml-2 text-sm bg-blue-100 dark:bg-blue-900/50 text-blue-600 dark:text-blue-400 px-2 py-0.5 rounded">
-                多选题
+                {t('questionCard.multipleChoice')}
               </span>
             )}
           </h3>
         </div>
         {onDelete && isEditable && (
           <button
-            onClick={onDelete}className="text-gray-500 hover:text-red-500 transition-colors p-2 rounded-full hover:bg-gray-100 dark:hover:bg-gray-700"
-            aria-label="删除题目"
+            onClick={onDelete}
+            className="text-gray-500 hover:text-red-500 transition-colors p-2 rounded-full hover:bg-gray-100 dark:hover:bg-gray-700"
+            aria-label={t('questionCard.deleteQuestion')}
           >
             <i className="fa-solid fa-trash"></i>
           </button>
@@ -129,7 +132,7 @@ export const QuestionCard: React.FC<QuestionCardProps> = ({
                 {userAnswer !== null && isOptionCorrect(key) && (
                   <div className="flex justify-end mt-2">
                     <span className="inline-flex items-center text-green-600 dark:text-green-400 text-sm">
-                      <i className="fa-solid fa-check-circle mr-1"></i> 正确答案
+                      <i className="fa-solid fa-check-circle mr-1"></i> {t('questionCard.correctTag')}
                     </span>
                   </div>
                 )}
@@ -137,7 +140,7 @@ export const QuestionCard: React.FC<QuestionCardProps> = ({
                 {userAnswer !== null && isOptionSelectedByUser(key) && !isOptionCorrect(key) && (
                   <div className="flex justify-end mt-2">
                     <span className="inline-flex items-center text-red-600 dark:text-red-400 text-sm">
-                      <i className="fa-solid fa-x-circle mr-1"></i> 您的答案
+                      <i className="fa-solid fa-x-circle mr-1"></i> {t('questionCard.yourTag')}
                     </span>
                   </div>
                 )}
@@ -151,11 +154,11 @@ export const QuestionCard: React.FC<QuestionCardProps> = ({
           <div className="mb-6 p-4 bg-gray-50 dark:bg-gray-750 rounded-xl border border-gray-200 dark:border-gray-700">
             <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center">
               <div className="mb-2 sm:mb-0">
-                <span className="font-medium text-gray-700 dark:text-gray-300">正确答案：</span>
+                <span className="font-medium text-gray-700 dark:text-gray-300">{t('questionCard.correctAnswer')}：</span>
                 <span className="text-green-600 dark:text-green-400 font-medium">{getCorrectAnswersText()}</span>
               </div>
               <div>
-                <span className="font-medium text-gray-700 dark:text-gray-300">您的答案：</span>
+                <span className="font-medium text-gray-700 dark:text-gray-300">{t('questionCard.yourAnswer')}：</span>
                 <span className={`font-medium ${isCorrect ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400'}`}>
                   {getUserAnswersText()}
                 </span>
@@ -169,7 +172,7 @@ export const QuestionCard: React.FC<QuestionCardProps> = ({
           <div className="mt-6 pt-6 border-t border-gray-100 dark:border-gray-700">
             <h4 className="font-semibold text-gray-800 dark:text-gray-200 mb-2 flex items-center">
               <i className="fa-solid fa-lightbulb text-yellow-500 mr-2"></i>
-              解析
+              {t('questionCard.analysis')}
             </h4>
             <div className="text-gray-600 dark:text-gray-400 whitespace-pre-line">
               {question.explanation}

@@ -1,12 +1,14 @@
 import React, { useRef, useState } from 'react';
 import { toast } from 'sonner';
 import { Question } from '@/types';
+import { useTranslation } from 'react-i18next';
 
 interface FileImporterProps {
   onImport: (questions: Question[]) => void;
 }
 
 export const FileImporter: React.FC<FileImporterProps> = ({ onImport }) => {
+  const { t } = useTranslation();
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [isDragOver, setIsDragOver] = useState(false);
@@ -85,7 +87,7 @@ export const FileImporter: React.FC<FileImporterProps> = ({ onImport }) => {
         correctAnswerIndex === undefined ||
         explanationIndex === undefined
       ) {
-        toast.error('CSV 表头不符合要求');
+        toast.error(t('fileImporter.toast.invalidHeader'));
         return [];
       }
 
@@ -137,7 +139,7 @@ export const FileImporter: React.FC<FileImporterProps> = ({ onImport }) => {
       });
     } catch (error) {
       console.error('文件解析过程中发生错误:', error);
-      toast.error('文件解析过程中发生错误');
+      toast.error(t('fileImporter.toast.parseError'));
     }
 
     return questions;
@@ -146,7 +148,7 @@ export const FileImporter: React.FC<FileImporterProps> = ({ onImport }) => {
   // 处理文件上传
   const handleFileUpload = (file: File) => {
     if (!file.name.endsWith('.csv')) {
-      toast.error('请上传 CSV 文件 (.csv)');
+      toast.error(t('fileImporter.toast.invalidType'));
       return;
     }
     
@@ -161,12 +163,12 @@ export const FileImporter: React.FC<FileImporterProps> = ({ onImport }) => {
         
         if (questions.length > 0) {
           onImport(questions);
-          toast.success(`成功导入 ${questions.length} 道题目`);
+          toast.success(t('fileImporter.toast.success', { count: questions.length }));
         } else {
-          toast.warning('未解析到有效题目，请检查文件格式');
+          toast.warning(t('fileImporter.toast.noValid'));
         }
       } catch (error) {
-        toast.error('文件解析失败');
+        toast.error(t('fileImporter.toast.parseFail'));
         console.error('文件解析错误:', error);
       } finally {
         setIsLoading(false);
@@ -174,7 +176,7 @@ export const FileImporter: React.FC<FileImporterProps> = ({ onImport }) => {
     };
     
     reader.onerror = () => {
-      toast.error('文件读取失败');
+      toast.error(t('fileImporter.toast.readFail'));
       setIsLoading(false);
     };
     
@@ -242,7 +244,7 @@ export const FileImporter: React.FC<FileImporterProps> = ({ onImport }) => {
         {isLoading ? (
           <>
             <div className="w-12 h-12 border-4 border-blue-200 border-t-blue-600 rounded-full animate-spin mb-4"></div>
-            <p className="text-gray-700 dark:text-gray-300 font-medium">正在解析文件...</p>
+            <p className="text-gray-700 dark:text-gray-300 font-medium">{t('fileImporter.parsing')}</p>
           </>
         ) : (
           <>
@@ -250,10 +252,10 @@ export const FileImporter: React.FC<FileImporterProps> = ({ onImport }) => {
               <i className="fa-solid fa-cloud-arrow-up"></i>
             </div>
             <h3 className="text-xl font-bold text-gray-800 dark:text-gray-200 mb-2">
-              拖放文件到此处或点击上传
+              {t('fileImporter.dropOrClick')}
             </h3>
             <p className="text-gray-600 dark:text-gray-400 text-center max-w-md">
-              支持 .csv 格式文件，表头需包含 Question / Question Text / Options / Correct Answer / Explanation
+              {t('fileImporter.support')}
             </p>
           </>
         )}
@@ -262,32 +264,32 @@ export const FileImporter: React.FC<FileImporterProps> = ({ onImport }) => {
       <div className="mt-6 bg-gray-50 dark:bg-gray-800/50 p-4 rounded-xl border border-gray-200 dark:border-gray-700">
         <h4 className="text-lg font-semibold mb-2 text-gray-800 dark:text-gray-200">
           <i className="fa-solid fa-circle-info text-blue-500 mr-2"></i>
-          文件格式要求
+          {t('fileImporter.requirements')}
         </h4>
         <ul className="text-gray-600 dark:text-gray-400 space-y-2">
           <li className="flex items-start">
             <i className="fa-solid fa-check-circle text-green-500 mt-1 mr-2"></i>
-            <span>文件必须为 CSV 格式</span>
+            <span>{t('fileImporter.req.csv')}</span>
           </li>
           <li className="flex items-start">
             <i className="fa-solid fa-check-circle text-green-500 mt-1 mr-2"></i>
-            <span>表头包含 Question / Question Text / Options / Correct Answer / Explanation</span>
+            <span>{t('fileImporter.req.headers')}</span>
           </li>
           <li className="flex items-start">
             <i className="fa-solid fa-check-circle text-green-500 mt-1 mr-2"></i>
-            <span>Options 字段是 JSON 字符串，如 {'{"A":"选项A","B":"选项B"}'}</span>
+            <span>{t('fileImporter.req.optionsJson')}</span>
           </li>
           <li className="flex items-start">
             <i className="fa-solid fa-check-circle text-green-500 mt-1 mr-2"></i>
-            <span>Correct Answer 支持单个或多个，如 "D" 或 "A, C"</span>
+            <span>{t('fileImporter.req.correctAnswer')}</span>
           </li>
           <li className="flex items-start">
             <i className="fa-solid fa-check-circle text-green-500 mt-1 mr-2"></i>
-            <span>Explanation 为题目解析文本</span>
+            <span>{t('fileImporter.req.explanation')}</span>
           </li>
           <li className="flex items-start">
             <i className="fa-solid fa-check-circle text-green-500 mt-1 mr-2"></i>
-            <span>空行将被忽略</span>
+            <span>{t('fileImporter.req.empty')}</span>
           </li>
         </ul>
       </div>

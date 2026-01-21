@@ -1,0 +1,290 @@
+{
+  "common": {
+    "appName": "Mock Exam System",
+    "admin": "Admin",
+    "backHome": "Back to Home",
+    "backQuestionBank": "Back to Question Bank",
+    "switchToDark": "Switch to dark mode",
+    "switchToLight": "Switch to light mode",
+    "switchLanguage": "Switch language",
+    "loading": "Loading...",
+    "logout": "Log out"
+  },
+  "auth": {
+    "login": {
+      "title": "User Login",
+      "email": "Email",
+      "password": "Password",
+      "emailPlaceholder": "Enter your email",
+      "passwordPlaceholder": "Enter your password",
+      "submit": "Log In",
+      "submitting": "Signing in...",
+      "noAccount": "No account?",
+      "registerNow": "Register now",
+      "toastMissing": "Please enter email and password",
+      "toastSuccess": "Login successful!",
+      "toastInvalid": "Invalid email or password",
+      "toastFail": "Login failed, please try again"
+    },
+    "register": {
+      "title": "User Registration",
+      "email": "Email",
+      "password": "Password",
+      "confirmPassword": "Confirm Password",
+      "emailPlaceholder": "Enter your email",
+      "passwordPlaceholder": "Enter your password",
+      "confirmPlaceholder": "Re-enter your password",
+      "submit": "Register",
+      "submitting": "Registering...",
+      "haveAccount": "Already have an account?",
+      "loginNow": "Log in now",
+      "toastMissing": "Please fill in all fields",
+      "toastMismatch": "Passwords do not match",
+      "toastTooShort": "Password must be at least 6 characters",
+      "toastSuccess": "Registration successful! Please log in",
+      "toastExists": "Email already registered",
+      "toastFail": "Registration failed, please try again"
+    }
+  },
+  "home": {
+    "guestTitle": "Welcome to Mock Exam System",
+    "guestDesc": "Please log in or register to get started",
+    "welcomeBack": "Welcome back, ",
+    "globalStatsTitle": "Global Statistics",
+    "globalStatsDesc": "View all users' exam performance",
+    "personalStatsDesc": "Here is your exam performance overview",
+    "showGlobal": "Show global stats",
+    "showPersonal": "Show personal stats",
+    "quick": {
+      "importTitle": "Import Question Bank",
+      "importDesc": "Upload a file of questions to quickly add to your bank",
+      "myQuestionsTitle": "My Question Bank",
+      "myQuestionsDesc": "View and manage all your questions",
+      "startExamTitle": "Start Exam",
+      "startExamDesc": "Take a mock exam to test your knowledge"
+    },
+    "adminCard": {
+      "title": "Admin Tools",
+      "desc": "As an admin, you can view statistics for all users",
+      "action": "View global stats"
+    },
+    "stats": {
+      "totalUsers": "Total Users",
+      "totalUsersDesc": "All registered users",
+      "totalQuestions": "Total Questions",
+      "totalQuestionsDesc": "Questions in the global bank",
+      "totalExams": "Total Exams",
+      "totalExamsDesc": "All users' exam attempts",
+      "averageScore": "Average Score",
+      "averageScoreDesc": "Average accuracy across all exams",
+      "userExams": "Exam Attempts",
+      "userExamsDesc": "Total exams you have taken",
+      "userAverage": "Average Score",
+      "userAverageDesc": "Average accuracy across your exams",
+      "userHighest": "Highest Score",
+      "userHighestDesc": "Your best result",
+      "userLowest": "Lowest Score",
+      "userLowestDesc": "Your lowest result"
+    },
+    "charts": {
+      "globalUsersAvg": "Average Score by User",
+      "personalTrend": "Score Trend",
+      "examLabel": "Exam {{index}}",
+      "scoreLabel": "Score",
+      "averageLabel": "Average Score"
+    },
+    "actions": {
+      "import": "Import Question Bank",
+      "create": "Create Question",
+      "startExam": "Start Exam"
+    }
+  },
+  "questions": {
+    "title": "My Question Bank",
+    "subtitle": "Manage and preview all your questions",
+    "listTitle": "Question List",
+    "listStats": "Total {{total}} questions, showing {{filtered}}",
+    "searchPlaceholder": "Search questions...",
+    "clearSearch": "Clear search",
+    "noQuestionsTitle": "No questions imported yet",
+    "noQuestionsDesc": "Click \"Import Questions\" above to add questions to your bank",
+    "noResultsTitle": "No matching questions found",
+    "noResultsDesc": "Try a different keyword",
+    "importButton": "Import Questions",
+    "createButton": "Create Question",
+    "startExamButton": "Start Exam",
+    "clearAll": "Clear",
+    "toastLoadFail": "Failed to load questions",
+    "toastDeleteFail": "Failed to delete question",
+    "toastDeleted": "Question deleted",
+    "toastCleared": "All questions deleted",
+    "confirmDeleteOne": "Are you sure you want to delete this question?",
+    "confirmDeleteAll": "Are you sure you want to delete all questions? This cannot be undone."
+  },
+  "import": {
+    "title": "Import Question Bank",
+    "subtitle": "Upload a file of questions and we will parse and add them to your bank",
+    "importedTitle": "Imported Questions",
+    "previewTitle": "Preview",
+    "previewMore": "... {{count}} more questions not shown ...",
+    "totalImported": "Imported {{count}} questions in total",
+    "tipsTitle": "Tips",
+    "tips": {
+      "saved": "Questions are saved automatically, refreshing will not lose data",
+      "startExam": "Click \"Start Exam\" to begin a mock test",
+      "importMore": "You can import more questions at any time"
+    },
+    "buttons": {
+      "clear": "Clear",
+      "showPreview": "Show Preview",
+      "hidePreview": "Hide Preview",
+      "create": "Create Question",
+      "startExam": "Start Exam"
+    },
+    "toast": {
+      "empty": "No valid questions found. Please check the file format",
+      "saveFail": "Failed to save questions, please try again",
+      "deleteFail": "Failed to delete question",
+      "deleted": "Question deleted",
+      "loginFirst": "Please log in first"
+    }
+  },
+  "fileImporter": {
+    "parsing": "Parsing file...",
+    "dropOrClick": "Drop a file here or click to upload",
+    "support": "Supports .csv files. Headers must include Question / Question Text / Options / Correct Answer / Explanation",
+    "requirements": "File Requirements",
+    "req": {
+      "csv": "File must be in CSV format",
+      "headers": "Headers include Question / Question Text / Options / Correct Answer / Explanation",
+      "optionsJson": "Options must be JSON, e.g. {\"A\":\"Option A\",\"B\":\"Option B\"}",
+      "correctAnswer": "Correct Answer supports single or multiple, e.g. \"D\" or \"A, C\"",
+      "explanation": "Explanation is the analysis text",
+      "empty": "Empty rows will be ignored"
+    },
+    "toast": {
+      "invalidHeader": "CSV headers do not meet requirements",
+      "parseError": "An error occurred while parsing the file",
+      "invalidType": "Please upload a CSV file (.csv)",
+      "success": "Imported {{count}} questions successfully",
+      "noValid": "No valid questions found. Please check the file format",
+      "readFail": "Failed to read file",
+      "parseFail": "Failed to parse file"
+    }
+  },
+  "createQuestion": {
+    "title": "Create Question",
+    "subtitle": "Create a new question and add it to your bank",
+    "questionLabel": "Question",
+    "questionPlaceholder": "Enter the question...",
+    "optionsLabel": "Options",
+    "addOption": "Add Option",
+    "optionPlaceholder": "Option {{key}}",
+    "deleteOption": "Delete option {{key}}",
+    "correctLabel": "Correct Answer",
+    "correctHint": "Multiple selections allowed",
+    "correctOption": "Option {{key}}",
+    "selected": "Selected: {{answers}}",
+    "explanationLabel": "Explanation (optional)",
+    "explanationPlaceholder": "Enter a detailed explanation...",
+    "saveAndAdd": "Save and add another",
+    "saveAndFinish": "Save and finish",
+    "saving": "Saving...",
+    "tipsTitle": "Creation Tips",
+    "tips": {
+      "saved": "Questions are saved automatically to your bank",
+      "multiOptions": "You can create multiple options, but select at least one correct answer",
+      "explanation": "Explanations help review after the exam"
+    },
+    "toast": {
+      "needOption": "At least one option is required",
+      "missingQuestion": "Please enter the question",
+      "missingOption": "Please enter at least one option",
+      "missingCorrect": "Please select the correct answer",
+      "correctEmpty": "Correct answers must reference non-empty options",
+      "loginFirst": "Please log in first",
+      "saveFail": "Failed to save question, please try again",
+      "created": "Question #{{number}} created successfully!"
+    }
+  },
+  "exam": {
+    "durationLabel": "Exam duration (minutes)",
+    "loadFail": "Failed to load questions",
+    "noQuestions": "No available questions. Please import questions first",
+    "loginFirst": "Please log in first",
+    "preStartTitle": "Ready to start the mock exam",
+    "preStartDesc": "This exam has {{count}} questions and lasts {{duration}} minutes",
+    "goImport": "Go import questions",
+    "rules": {
+      "title": "Exam Rules:",
+      "timing": "The timer starts when the exam begins and auto-submits when time is up",
+      "autoSave": "You can switch questions anytime and your answers are saved automatically",
+      "showResults": "After submission, your score and explanations will be shown",
+      "multiChoice": "Some questions are multiple choice; select all correct answers"
+    },
+    "navigation": {
+      "title": "Question Navigation:",
+      "current": "Current",
+      "answered": "Answered",
+      "unanswered": "Unanswered"
+    },
+    "currentQuestion": "Question {{current}}/{{total}}",
+    "remainingQuestions": "{{count}} questions remaining",
+    "multiChoiceHint": "Multiple choice: select all correct answers",
+    "saveResultFail": "Failed to save exam results, please try again",
+    "saveAnswersFail": "Failed to save answers, please try again",
+    "timeUp": "Time is up. The exam has been submitted automatically.",
+    "title": "Mock Exam",
+    "subtitle": "Answer the following questions to complete the exam",
+    "start": "Start Exam",
+    "submit": "Submit Exam",
+    "prev": "Previous",
+    "next": "Next",
+    "jumpTo": "Jump to Question",
+    "progress": "Progress",
+    "questionCount": "{{count}} questions",
+    "confirmSubmit": "Are you sure you want to submit? Your score will be calculated.",
+    "viewResults": "View Results",
+    "exit": "Exit Exam"
+  },
+  "results": {
+    "title": "Exam Results",
+    "subtitle": "View your score and detailed explanations",
+    "overviewTitle": "Congratulations on completing the exam!",
+    "completedAt": "You completed the exam at {{time}}",
+    "accuracy": "Accuracy",
+    "correctCount": "Correct",
+    "duration": "Time Spent",
+    "retake": "Retake Exam",
+    "viewBank": "View Question Bank",
+    "analysisTitle": "Explanations",
+    "showAll": "Show all questions",
+    "showIncorrect": "Only incorrect questions",
+    "perfectTitle": "Great job! You got everything correct",
+    "perfectDesc": "Excellent performance, keep it up!",
+    "viewAllAnalysis": "View all explanations",
+    "noResultTitle": "No exam results found",
+    "noResultDesc": "Please complete a mock exam first",
+    "startExam": "Start Exam",
+    "pie": {
+      "correct": "Correct",
+      "incorrect": "Incorrect"
+    }
+  },
+  "questionCard": {
+    "questionLabel": "Question",
+    "multipleChoice": "Multiple Choice",
+    "deleteQuestion": "Delete question",
+    "correctAnswer": "Correct answer",
+    "yourAnswer": "Your answer",
+    "analysis": "Explanation",
+    "correctTag": "Correct answer",
+    "yourTag": "Your answer"
+  },
+  "examTimer": {
+    "remaining": "Time left"
+  },
+  "footer": {
+    "copyright": "© 2026 Mock Exam System | Design & Development"
+  }
+}

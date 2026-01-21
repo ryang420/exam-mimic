@@ -8,11 +8,14 @@ import { Link, useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { AuthContext } from '@/contexts/authContext';
 import { supabase } from '@/lib/supabase';
+import { useTranslation } from 'react-i18next';
+import { LanguageSwitcher } from '@/components/LanguageSwitcher';
 
 export default function Exam() {
   const { theme, toggleTheme } = useTheme();
   const { currentUser } = useContext(AuthContext);
   const navigate = useNavigate();
+  const { t } = useTranslation();
   const [questions, setQuestions] = useState<Question[]>([]);
   const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0);
   const [userAnswers, setUserAnswers] = useState<Record<string, string[]>>({});
@@ -45,7 +48,7 @@ export default function Exam() {
 
       if (error) {
         console.error('加载题目失败:', error);
-        toast.error('加载题目失败');
+        toast.error(t('exam.loadFail'));
         return;
       }
 
@@ -74,7 +77,7 @@ export default function Exam() {
   // 开始考试
   const startExam = () => {
     if (questions.length === 0) {
-      toast.error('没有可用的题目，请先导入题目');
+      toast.error(t('exam.noQuestions'));
       return;
     }
     
@@ -184,7 +187,7 @@ export default function Exam() {
     };
     
     if (!currentUser?.id) {
-      toast.error('请先登录');
+      toast.error(t('exam.loginFirst'));
       return;
     }
 
@@ -202,7 +205,7 @@ export default function Exam() {
 
     if (sessionError) {
       console.error('保存考试结果失败:', sessionError);
-      toast.error('保存考试结果失败，请重试');
+      toast.error(t('exam.saveResultFail'));
       return;
     }
 
@@ -221,7 +224,7 @@ export default function Exam() {
 
     if (answersError) {
       console.error('保存答题记录失败:', answersError);
-      toast.error('保存答题记录失败，请重试');
+      toast.error(t('exam.saveAnswersFail'));
       return;
     }
 
@@ -230,7 +233,7 @@ export default function Exam() {
   
   // 时间到处理
   const handleTimeUp = () => {
-    toast.warning('考试时间已结束，自动提交试卷');
+    toast.warning(t('exam.timeUp'));
     submitExam();
   };
   
@@ -248,13 +251,14 @@ export default function Exam() {
         <div className="container mx-auto px-4 py-4 flex justify-between items-center">
           <h1 className="text-2xl font-bold text-blue-600 dark:text-blue-400">
             <i className="fa-solid fa-graduation-cap mr-2"></i>
-            模拟考试系统
+            {t('common.appName')}
           </h1>
           <div className="flex items-center space-x-4">
+            <LanguageSwitcher className="p-2 rounded-full bg-gray-100 dark:bg-gray-700 transition-colors" />
             <button
               onClick={toggleTheme}
               className="p-2 rounded-full bg-gray-100 dark:bg-gray-700 transition-colors"
-              aria-label={theme === 'light' ? '切换到暗色模式' : '切换到亮色模式'}
+              aria-label={theme === 'light' ? t('common.switchToDark') : t('common.switchToLight')}
             >
               {theme === 'light' ? (
                 <i className="fa-solid fa-moon"></i>
@@ -275,20 +279,20 @@ export default function Exam() {
               <div className="text-6xl text-blue-500 mb-6">
                 <i className="fa-solid fa-file-lines"></i>
               </div>
-              <h2 className="text-3xl font-bold mb-4">准备开始模拟考试</h2>
+              <h2 className="text-3xl font-bold mb-4">{t('exam.preStartTitle')}</h2>
               <p className="text-gray-600 dark:text-gray-400 mb-8">
-                本次考试共有 <span className="font-bold text-blue-600 dark:text-blue-400">{questions.length}</span> 道题目，考试时长为 <span className="font-bold text-blue-600 dark:text-blue-400">{examDuration}</span> 分钟
+                {t('exam.preStartDesc', { count: questions.length, duration: examDuration })}
               </p>
               
               {questions.length === 0 ? (
                 <div className="mb-8">
-                  <p className="text-red-500 dark:text-red-400 mb-4">没有可用的题目</p>
+                  <p className="text-red-500 dark:text-red-400 mb-4">{t('exam.noQuestions')}</p>
                   <Link
                     to="/import"
                     className="inline-flex items-center px-6 py-3 bg-blue-600 hover:bg-blue-700 text-white font-medium rounded-lg transition-colors"
                   >
                     <i className="fa-solid fa-file-import mr-2"></i>
-                    去导入题目
+                    {t('exam.goImport')}
                   </Link>
                 </div>
               ) : (
@@ -299,28 +303,28 @@ export default function Exam() {
                   className="px-8 py-4 bg-blue-600 hover:bg-blue-700 text-white font-bold text-lg rounded-lg shadow-lg transition-all"
                 >
                   <i className="fa-solid fa-play mr-2"></i>
-                  开始考试
+                  {t('exam.start')}
                 </motion.button>
               )}
               
               <div className="mt-8 text-gray-600 dark:text-gray-400 text-left">
-                <h3 className="font-semibold mb-2">考试规则：</h3>
+                <h3 className="font-semibold mb-2">{t('exam.rules.title')}</h3>
                 <ul className="space-y-2">
                   <li className="flex items-start">
                     <i className="fa-solid fa-circle-check text-green-500 mt-1 mr-2"></i>
-                    <span>考试开始后将开始计时，时间结束后自动提交</span>
+                    <span>{t('exam.rules.timing')}</span>
                   </li>
                   <li className="flex items-start">
                     <i className="fa-solid fa-circle-check text-green-500 mt-1 mr-2"></i>
-                    <span>您可以随时切换题目，系统会自动保存您的答案</span>
+                    <span>{t('exam.rules.autoSave')}</span>
                   </li>
                   <li className="flex items-start">
                     <i className="fa-solid fa-circle-check text-green-500 mt-1 mr-2"></i>
-                    <span>提交后将立即显示您的考试成绩和详细解析</span>
+                    <span>{t('exam.rules.showResults')}</span>
                   </li>
                   <li className="flex items-start">
                     <i className="fa-solid fa-circle-check text-green-500 mt-1 mr-2"></i>
-                    <span>部分题目支持多选，请选择所有正确答案</span>
+                    <span>{t('exam.rules.multiChoice')}</span>
                   </li>
                 </ul>
               </div>
@@ -338,16 +342,16 @@ export default function Exam() {
               {/* 题目导航 */}
               <div className="bg-white dark:bg-gray-800 rounded-xl shadow-md border border-gray-100 dark:border-gray-700 p-4 overflow-x-auto">
                 <div className="flex items-center mb-3">
-                  <h3 className="font-semibold mr-3">题目导航：</h3>
+                  <h3 className="font-semibold mr-3">{t('exam.navigation.title')}</h3>
                   <div className="flex space-x-2 text-sm">
                     <span className="flex items-center">
-                      <span className="w-3 h-3 bg-blue-500 rounded-full mr-1"></span> 当前
+                      <span className="w-3 h-3 bg-blue-500 rounded-full mr-1"></span> {t('exam.navigation.current')}
                     </span>
                     <span className="flex items-center">
-                      <span className="w-3 h-3 bg-green-500 rounded-full mr-1"></span> 已答
+                      <span className="w-3 h-3 bg-green-500 rounded-full mr-1"></span> {t('exam.navigation.answered')}
                     </span>
                     <span className="flex items-center">
-                      <span className="w-3 h-3 bg-gray-300 dark:bg-gray-600 rounded-full mr-1"></span> 未答
+                      <span className="w-3 h-3 bg-gray-300 dark:bg-gray-600 rounded-full mr-1"></span> {t('exam.navigation.unanswered')}
                     </span>
                   </div>
                 </div>
@@ -381,10 +385,15 @@ export default function Exam() {
               <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-md border border-gray-100 dark:border-gray-700 p-6">
                 <div className="flex justify-between items-center mb-6">
                   <h3 className="text-xl font-bold">
-                    题目 {currentQuestionIndex + 1}/{questions.length}
+                    {t('exam.currentQuestion', {
+                      current: currentQuestionIndex + 1,
+                      total: questions.length
+                    })}
                   </h3>
                   <span className="text-sm text-gray-500 dark:text-gray-400">
-                    剩余 {questions.length - Object.values(userAnswers).filter(answers => answers.length > 0).length} 道题未答
+                    {t('exam.remainingQuestions', {
+                      count: questions.length - Object.values(userAnswers).filter(answers => answers.length > 0).length
+                    })}
                   </span>
                 </div>
                 
@@ -398,7 +407,7 @@ export default function Exam() {
                     {questions[currentQuestionIndex].isMultipleChoice && (
                       <div className="mb-4 p-3 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg">
                         <span className="text-blue-600 dark:text-blue-400 text-sm font-medium">
-                          <i className="fa-solid fa-info-circle mr-1"></i> 多选题，请选择所有正确答案
+                          <i className="fa-solid fa-info-circle mr-1"></i> {t('exam.multiChoiceHint')}
                         </span>
                       </div>
                     )}
@@ -444,14 +453,14 @@ export default function Exam() {
                         : 'bg-gray-200 dark:bg-gray-700 hover:bg-gray-300 dark:hover:bg-gray-600 text-gray-800 dark:text-gray-200'
                     }`}
                   >
-                    <i className="fa-solid fa-arrow-left mr-1"></i> 上一题
+                    <i className="fa-solid fa-arrow-left mr-1"></i> {t('exam.prev')}
                   </button>
                   
                   <button
                     onClick={submitExam}
                     className="px-6 py-2 bg-red-600 hover:bg-red-700 text-white rounded-lg transition-colors"
                   >
-                    <i className="fa-solid fa-paper-plane mr-1"></i> 交卷
+                    <i className="fa-solid fa-paper-plane mr-1"></i> {t('exam.submit')}
                   </button>
                   
                   <button
@@ -463,7 +472,7 @@ export default function Exam() {
                         : 'bg-gray-200 dark:bg-gray-700 hover:bg-gray-300 dark:hover:bg-gray-600 text-gray-800 dark:text-gray-200'
                     }`}
                   >
-                    下一题 <i className="fa-solid fa-arrow-right ml-1"></i>
+                    {t('exam.next')} <i className="fa-solid fa-arrow-right ml-1"></i>
                   </button>
                 </div>
               </div>
@@ -475,7 +484,7 @@ export default function Exam() {
       {/* 页脚 */}
       <footer className="bg-gray-100 dark:bg-gray-800 border-t border-gray-200 dark:border-gray-700 py-8 mt-16">
         <div className="container mx-auto px-4 text-center text-gray-600 dark:text-gray-400">
-          <p>© 2026 模拟考试系统 | 设计与开发</p>
+          <p>{t('footer.copyright')}</p>
         </div>
       </footer>
     </div>

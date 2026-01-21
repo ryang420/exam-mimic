@@ -7,10 +7,13 @@ import { useTheme } from '@/hooks/useTheme';
 import { Link } from 'react-router-dom';
 import { AuthContext } from '@/contexts/authContext';
 import { supabase } from '@/lib/supabase';
+import { useTranslation } from 'react-i18next';
+import { LanguageSwitcher } from '@/components/LanguageSwitcher';
 
 export default function Import() {
   const { theme, toggleTheme } = useTheme();
   const { currentUser } = useContext(AuthContext);
+  const { t } = useTranslation();
   const [importedQuestions, setImportedQuestions] = useState<Question[]>([]);
   const [showPreview, setShowPreview] = useState(false);
 
@@ -66,7 +69,7 @@ export default function Import() {
   // 处理文件导入
   const handleImport = async (questions: Question[]) => {
     if (questions.length === 0) {
-      toast.warning('未解析到有效题目，请检查文件格式');
+      toast.warning(t('import.toast.empty'));
       return;
     }
     
@@ -94,7 +97,7 @@ export default function Import() {
     updatedQuestions.sort((a, b) => a.number - b.number);
     
     if (!currentUser?.id) {
-      toast.error('请先登录');
+      toast.error(t('import.toast.loginFirst'));
       return;
     }
 
@@ -114,7 +117,7 @@ export default function Import() {
     const { error } = await supabase.from('questions').insert(questionRows);
     if (error) {
       console.error('保存题目失败:', error);
-      toast.error('保存题目失败，请重试');
+      toast.error(t('import.toast.saveFail'));
       return;
     }
 
@@ -124,7 +127,7 @@ export default function Import() {
   
   // 清除所有题目
   const handleClearAll = () => {
-    if (window.confirm('确定要删除所有题目吗？此操作不可恢复。')) {
+    if (window.confirm(t('questions.confirmDeleteAll'))) {
       if (!currentUser?.id) return;
 
       const clearQuestions = async () => {
@@ -136,7 +139,7 @@ export default function Import() {
 
         setImportedQuestions([]);
         setShowPreview(false);
-        toast.success('所有题目已删除');
+        toast.success(t('questions.toastCleared'));
       };
 
       clearQuestions();
@@ -147,12 +150,12 @@ export default function Import() {
     if (!currentUser?.id) return;
     const { error } = await supabase.from('questions').delete().eq('id', id);
     if (error) {
-      toast.error('删除题目失败');
+      toast.error(t('import.toast.deleteFail'));
       return;
     }
     const updatedQuestions = importedQuestions.filter(q => q.id !== id);
     setImportedQuestions(updatedQuestions);
-    toast.success('题目已删除');
+    toast.success(t('import.toast.deleted'));
   };
   
   return (
@@ -162,13 +165,14 @@ export default function Import() {
         <div className="container mx-auto px-4 py-4 flex justify-between items-center">
           <h1 className="text-2xl font-bold text-blue-600 dark:text-blue-400">
             <i className="fa-solid fa-graduation-cap mr-2"></i>
-            模拟考试系统
+            {t('common.appName')}
           </h1>
           <div className="flex items-center space-x-4">
+            <LanguageSwitcher className="p-2 rounded-full bg-gray-100 dark:bg-gray-700 transition-colors" />
             <button
               onClick={toggleTheme}
               className="p-2 rounded-full bg-gray-100 dark:bg-gray-700 transition-colors"
-              aria-label={theme === 'light' ? '切换到暗色模式' : '切换到亮色模式'}
+              aria-label={theme === 'light' ? t('common.switchToDark') : t('common.switchToLight')}
             >
               {theme === 'light' ? (
                 <i className="fa-solid fa-moon"></i>
@@ -185,14 +189,14 @@ export default function Import() {
         <div className="max-w-4xl mx-auto">
           <div className="flex items-center justify-between mb-8">
             <div>
-              <h2 className="text-3xl font-bold mb-2">导入题库</h2>
-              <p className="text-gray-600 dark:text-gray-400">上传包含考题的文本文件，系统将自动解析并添加到您的题库</p>
+              <h2 className="text-3xl font-bold mb-2">{t('import.title')}</h2>
+              <p className="text-gray-600 dark:text-gray-400">{t('import.subtitle')}</p>
             </div>
             <Link
               to="/"
               className="px-4 py-2 bg-gray-200 dark:bg-gray-700 hover:bg-gray-300 dark:hover:bg-gray-600 rounded-lg transition-colors"
             >
-              <i className="fa-solid fa-arrow-left mr-1"></i> 返回首页
+              <i className="fa-solid fa-arrow-left mr-1"></i> {t('common.backHome')}
             </Link>
           </div>
           
@@ -205,13 +209,13 @@ export default function Import() {
           {importedQuestions.length > 0 && (
             <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-md border border-gray-100 dark:border-gray-700 p-6 mb-8">
               <div className="flex justify-between items-center mb-4">
-                <h3 className="text-xl font-bold">已导入题目</h3>
+                <h3 className="text-xl font-bold">{t('import.importedTitle')}</h3>
                 <div className="flex space-x-2">
                   <button
                     onClick={handleClearAll}
                     className="px-4 py-2 bg-red-100 dark:bg-red-900/30 text-red-600 dark:text-red-400 rounded-lg hover:bg-red-200 dark:hover:bg-red-900/50 transition-colors"
                   >
-                    <i className="fa-solid fa-trash-can mr-1"></i> 清空
+                    <i className="fa-solid fa-trash-can mr-1"></i> {t('import.buttons.clear')}
                   </button>
                    <button
                     onClick={() => setShowPreview(!showPreview)}
@@ -219,11 +223,11 @@ export default function Import() {
                   >
                     {showPreview ? (
                       <>
-                        <i className="fa-solid fa-eye-slash mr-1"></i> 隐藏预览
+                        <i className="fa-solid fa-eye-slash mr-1"></i> {t('import.buttons.hidePreview')}
                       </>
                     ) : (
                       <>
-                        <i className="fa-solid fa-eye mr-1"></i> 查看预览
+                        <i className="fa-solid fa-eye mr-1"></i> {t('import.buttons.showPreview')}
                       </>
                     )}
                   </button>
@@ -231,13 +235,13 @@ export default function Import() {
                     to="/create-question"
                     className="px-4 py-2 bg-purple-100 dark:bg-purple-900/30 text-purple-600 dark:text-purple-400 rounded-lg hover:bg-purple-200 dark:hover:bg-purple-900/50 transition-colors"
                   >
-                    <i className="fa-solid fa-plus mr-1"></i> 创建题目
+                    <i className="fa-solid fa-plus mr-1"></i> {t('import.buttons.create')}
                   </Link>
                   <Link
                     to="/exam"
                     className="px-4 py-2 bg-green-100 dark:bg-green-900/30 text-green-600 dark:text-green-400 rounded-lg hover:bg-green-200 dark:hover:bg-green-900/50 transition-colors"
                   >
-                    <i className="fa-solid fa-pen-to-square mr-1"></i> 开始考试
+                    <i className="fa-solid fa-pen-to-square mr-1"></i> {t('import.buttons.startExam')}
                   </Link>
                 </div>
               </div>
@@ -246,7 +250,7 @@ export default function Import() {
                   {importedQuestions.length}
                 </div>
                 <div className="text-gray-600 dark:text-gray-400">
-                  总共导入了 {importedQuestions.length} 道题目
+                  {t('import.totalImported', { count: importedQuestions.length })}
                 </div>
               </div>
             </div>
@@ -255,7 +259,7 @@ export default function Import() {
           {/* 题目预览 */}
           {showPreview && importedQuestions.length > 0 && (
             <div>
-              <h3 className="text-xl font-bold mb-4">题目预览</h3>
+              <h3 className="text-xl font-bold mb-4">{t('import.previewTitle')}</h3>
               <div className="space-y-4 max-h-[600px] overflow-y-auto pr-2 custom-scrollbar">
                 {importedQuestions.slice(0, 3).map(question => (
                   <QuestionCard
@@ -268,7 +272,7 @@ export default function Import() {
                 
                 {importedQuestions.length > 3 && (
                   <div className="text-center py-4 text-gray-600 dark:text-gray-400">
-                    ... 还有 {importedQuestions.length - 3} 道题目未显示 ...
+                    {t('import.previewMore', { count: importedQuestions.length - 3 })}
                   </div>
                 )}
               </div>
@@ -280,20 +284,20 @@ export default function Import() {
             <div className="mt-8 bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-800 rounded-xl p-4">
               <h4 className="font-semibold text-yellow-800 dark:text-yellow-400 mb-2 flex items-center">
                 <i className="fa-solid fa-circle-info mr-2"></i>
-                操作提示
+                {t('import.tipsTitle')}
               </h4>
               <ul className="text-yellow-700 dark:text-yellow-300 space-y-2">
                 <li className="flex items-start">
                   <i className="fa-solid fa-check-circle mt-1 mr-2"></i>
-                  <span>题目已自动保存到本地存储，刷新页面不会丢失</span>
+                  <span>{t('import.tips.saved')}</span>
                 </li>
                 <li className="flex items-start">
                   <i className="fa-solid fa-check-circle mt-1 mr-2"></i>
-                  <span>点击"开始考试"按钮立即进行模拟测试</span>
+                  <span>{t('import.tips.startExam')}</span>
                 </li>
                 <li className="flex items-start">
                   <i className="fa-solid fa-check-circle mt-1 mr-2"></i>
-                  <span>您可以随时再次导入新的题目文件</span>
+                  <span>{t('import.tips.importMore')}</span>
                 </li>
               </ul>
             </div>
@@ -304,7 +308,7 @@ export default function Import() {
       {/* 页脚 */}
       <footer className="bg-gray-100 dark:bg-gray-800 border-t border-gray-200 dark:border-gray-700 py-8 mt-16">
         <div className="container mx-auto px-4 text-center text-gray-600 dark:text-gray-400">
-          <p>© 2026 模拟考试系统 | 设计与开发</p>
+          <p>{t('footer.copyright')}</p>
         </div>
       </footer>
     </div>

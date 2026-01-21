@@ -6,10 +6,13 @@ import { useTheme } from '@/hooks/useTheme';
 import { Link } from 'react-router-dom';
 import { AuthContext } from '@/contexts/authContext';
 import { supabase } from '@/lib/supabase';
+import { useTranslation } from 'react-i18next';
+import { LanguageSwitcher } from '@/components/LanguageSwitcher';
 
 export default function Questions() {
   const { theme, toggleTheme } = useTheme();
   const { currentUser } = useContext(AuthContext);
+  const { t } = useTranslation();
   const [questions, setQuestions] = useState<Question[]>([]);
   const [searchTerm, setSearchTerm] = useState('');
   const [filteredQuestions, setFilteredQuestions] = useState<Question[]>([]);
@@ -39,7 +42,7 @@ export default function Questions() {
 
       if (error) {
         console.error('加载题目失败:', error);
-        toast.error('加载题目失败');
+        toast.error(t('questions.toastLoadFail'));
         return;
       }
 
@@ -88,18 +91,18 @@ export default function Questions() {
   
   // 删除题目
   const handleDeleteQuestion = (id: string) => {
-    if (window.confirm('确定要删除这道题目吗？')) {
+    if (window.confirm(t('questions.confirmDeleteOne'))) {
       const deleteQuestion = async () => {
         const { error } = await supabase.from('questions').delete().eq('id', id);
         if (error) {
-          toast.error('题目删除失败');
+          toast.error(t('questions.toastDeleteFail'));
           return;
         }
 
         const updatedQuestions = questions.filter(q => q.id !== id);
         setQuestions(updatedQuestions);
         setFilteredQuestions(updatedQuestions);
-        toast.success('题目已删除');
+        toast.success(t('questions.toastDeleted'));
       };
 
       deleteQuestion();
@@ -108,7 +111,7 @@ export default function Questions() {
   
   // 清空所有题目
   const handleClearAll = () => {
-    if (window.confirm('确定要删除所有题目吗？此操作不可恢复。')) {
+    if (window.confirm(t('questions.confirmDeleteAll'))) {
       const clearQuestions = async () => {
         if (!currentUser?.id) return;
 
@@ -120,7 +123,7 @@ export default function Questions() {
 
         setQuestions([]);
         setFilteredQuestions([]);
-        toast.success('所有题目已删除');
+        toast.success(t('questions.toastCleared'));
       };
 
       clearQuestions();
@@ -134,13 +137,14 @@ export default function Questions() {
         <div className="container mx-auto px-4 py-4 flex justify-between items-center">
           <h1 className="text-2xl font-bold text-blue-600 dark:text-blue-400">
             <i className="fa-solid fa-graduation-cap mr-2"></i>
-            模拟考试系统
+            {t('common.appName')}
           </h1>
           <div className="flex items-center space-x-4">
+            <LanguageSwitcher className="p-2 rounded-full bg-gray-100 dark:bg-gray-700 transition-colors" />
             <button
               onClick={toggleTheme}
               className="p-2 rounded-full bg-gray-100 dark:bg-gray-700 transition-colors"
-              aria-label={theme === 'light' ? '切换到暗色模式' : '切换到亮色模式'}
+              aria-label={theme === 'light' ? t('common.switchToDark') : t('common.switchToLight')}
             >
               {theme === 'light' ? (
                 <i className="fa-solid fa-moon"></i>
@@ -157,35 +161,35 @@ export default function Questions() {
         <div className="max-w-4xl mx-auto">
           <div className="flex flex-col md:flex-row md:items-center justify-between mb-8">
             <div>
-              <h2 className="text-3xl font-bold mb-2">我的题库</h2>
-              <p className="text-gray-600 dark:text-gray-400">管理和预览您导入的所有题目</p>
+              <h2 className="text-3xl font-bold mb-2">{t('questions.title')}</h2>
+              <p className="text-gray-600 dark:text-gray-400">{t('questions.subtitle')}</p>
             </div>
               <div className="mt-4 md:mt-0 flex flex-wrap gap-3">
                 <Link
                   to="/import"
                   className="px-4 py-2 bg-blue-100 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 rounded-lg hover:bg-blue-200 dark:hover:bg-blue-900/50 transition-colors"
                 >
-                  <i className="fa-solid fa-file-import mr-1"></i> 导入题目
+                  <i className="fa-solid fa-file-import mr-1"></i> {t('questions.importButton')}
                 </Link>
                 <Link
                   to="/create-question"
                   className="px-4 py-2 bg-purple-100 dark:bg-purple-900/30 text-purple-600 dark:text-purple-400 rounded-lg hover:bg-purple-200 dark:hover:bg-purple-900/50 transition-colors"
                 >
-                  <i className="fa-solid fa-plus mr-1"></i> 创建题目
+                  <i className="fa-solid fa-plus mr-1"></i> {t('questions.createButton')}
                 </Link>
                 {questions.length > 0 && (
                   <Link
                     to="/exam"
                     className="px-4 py-2 bg-green-100 dark:bg-green-900/30 text-green-600 dark:text-green-400 rounded-lg hover:bg-green-200 dark:hover:bg-green-900/50 transition-colors"
                   >
-                    <i className="fa-solid fa-pen-to-square mr-1"></i> 开始考试
+                    <i className="fa-solid fa-pen-to-square mr-1"></i> {t('questions.startExamButton')}
                   </Link>
                 )}
                 <Link
                   to="/"
                   className="px-4 py-2 bg-gray-200 dark:bg-gray-700 hover:bg-gray-300 dark:hover:bg-gray-600 rounded-lg transition-colors"
                 >
-                  <i className="fa-solid fa-arrow-left mr-1"></i> 返回首页
+                  <i className="fa-solid fa-arrow-left mr-1"></i> {t('common.backHome')}
                 </Link>
               </div>
           </div>
@@ -195,16 +199,16 @@ export default function Questions() {
             <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-md border border-gray-100 dark:border-gray-700 p-6 mb-8">
               <div className="flex flex-col md:flex-row md:items-center justify-between mb-4">
                 <div>
-                  <h3 className="text-xl font-bold mb-1">题目列表</h3>
+                  <h3 className="text-xl font-bold mb-1">{t('questions.listTitle')}</h3>
                   <p className="text-gray-600 dark:text-gray-400">
-                    总共 {questions.length} 道题目，当前显示 {filteredQuestions.length} 道
+                    {t('questions.listStats', { total: questions.length, filtered: filteredQuestions.length })}
                   </p>
                 </div>
                 <div className="mt-4 md:mt-0 flex space-x-2">
                   <div className="relative">
                     <input
                       type="text"
-                      placeholder="搜索题目..."
+                      placeholder={t('questions.searchPlaceholder')}
                       value={searchTerm}
                       onChange={(e) => setSearchTerm(e.target.value)}
                       className="pl-10 pr-4 py-2 bg-gray-100 dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
@@ -215,7 +219,7 @@ export default function Questions() {
                     onClick={handleClearAll}
                     className="px-4 py-2 bg-red-100 dark:bg-red-900/30 text-red-600 dark:text-red-400 rounded-lg hover:bg-red-200 dark:hover:bg-red-900/50 transition-colors"
                   >
-                    <i className="fa-solid fa-trash-can mr-1"></i> 清空
+                    <i className="fa-solid fa-trash-can mr-1"></i> {t('questions.clearAll')}
                   </button>
                 </div>
               </div>
@@ -240,16 +244,16 @@ export default function Questions() {
               <div className="text-6xl text-gray-300 dark:text-gray-600 mb-4">
                 <i className="fa-solid fa-book-open"></i>
               </div>
-              <h3 className="text-xl font-bold mb-2">还没有导入题目</h3>
+              <h3 className="text-xl font-bold mb-2">{t('questions.noQuestionsTitle')}</h3>
               <p className="text-gray-600 dark:text-gray-400 mb-6">
-                点击上方的"导入题目"按钮开始添加题目到您的题库
+                {t('questions.noQuestionsDesc')}
               </p>
               <Link
                 to="/import"
                 className="inline-flex items-center px-6 py-3 bg-blue-600 hover:bg-blue-700 text-white font-medium rounded-lg transition-colors"
               >
                 <i className="fa-solid fa-file-import mr-2"></i>
-                导入题目
+                {t('questions.importButton')}
               </Link>
             </div>
           ) : (
@@ -257,16 +261,16 @@ export default function Questions() {
               <div className="text-6xl text-gray-300 dark:text-gray-600 mb-4">
                 <i className="fa-solid fa-search"></i>
               </div>
-              <h3 className="text-xl font-bold mb-2">没有找到匹配的题目</h3>
+              <h3 className="text-xl font-bold mb-2">{t('questions.noResultsTitle')}</h3>
               <p className="text-gray-600 dark:text-gray-400 mb-6">
-                请尝试使用不同的搜索关键词
+                {t('questions.noResultsDesc')}
               </p>
               <button
                 onClick={() => setSearchTerm('')}
                 className="inline-flex items-center px-6 py-3 bg-gray-200 dark:bg-gray-700 hover:bg-gray-300 dark:hover:bg-gray-600 text-gray-800 dark:text-gray-200 font-medium rounded-lg transition-colors"
               >
                 <i className="fa-solid fa-rotate-left mr-2"></i>
-                清除搜索
+                {t('questions.clearSearch')}
               </button>
             </div>
           )}
@@ -276,7 +280,7 @@ export default function Questions() {
       {/* 页脚 */}
       <footer className="bg-gray-100 dark:bg-gray-800 border-t border-gray-200 dark:border-gray-700 py-8 mt-16">
         <div className="container mx-auto px-4 text-center text-gray-600 dark:text-gray-400">
-          <p>© 2026 模拟考试系统 | 设计与开发</p>
+          <p>{t('footer.copyright')}</p>
         </div>
       </footer>
     </div>

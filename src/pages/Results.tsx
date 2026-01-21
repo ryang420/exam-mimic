@@ -7,11 +7,14 @@ import { motion } from 'framer-motion';
 import { PieChart, Pie, Cell, ResponsiveContainer } from 'recharts';
 import { AuthContext } from '@/contexts/authContext';
 import { supabase } from '@/lib/supabase';
+import { useTranslation } from 'react-i18next';
+import { LanguageSwitcher } from '@/components/LanguageSwitcher';
 
 export default function Results() {
   const { theme, toggleTheme } = useTheme();
   const { currentUser } = useContext(AuthContext);
   const location = useLocation();
+  const { t } = useTranslation();
   const [examResult, setExamResult] = useState<ExamSession | null>(null);
   const [questions, setQuestions] = useState<Question[]>([]);
   const [showIncorrectOnly, setShowIncorrectOnly] = useState(false);
@@ -131,8 +134,8 @@ export default function Results() {
   const getPieData = () => {
     const stats = getStats();
     return [
-      { name: '正确', value: stats.correct },
-      { name: '错误', value: stats.incorrect }
+      { name: t('results.pie.correct'), value: stats.correct },
+      { name: t('results.pie.incorrect'), value: stats.incorrect }
     ];
   };
   
@@ -170,13 +173,14 @@ export default function Results() {
         <div className="container mx-auto px-4 py-4 flex justify-between items-center">
           <h1 className="text-2xl font-bold text-blue-600 dark:text-blue-400">
             <i className="fa-solid fa-graduation-cap mr-2"></i>
-            模拟考试系统
+            {t('common.appName')}
           </h1>
           <div className="flex items-center space-x-4">
+            <LanguageSwitcher className="p-2 rounded-full bg-gray-100 dark:bg-gray-700 transition-colors" />
             <button
               onClick={toggleTheme}
               className="p-2 rounded-full bg-gray-100 dark:bg-gray-700 transition-colors"
-              aria-label={theme === 'light' ? '切换到暗色模式' : '切换到亮色模式'}
+              aria-label={theme === 'light' ? t('common.switchToDark') : t('common.switchToLight')}
             >
               {theme === 'light' ? (
                 <i className="fa-solid fa-moon"></i>
@@ -193,14 +197,14 @@ export default function Results() {
         <div className="max-w-4xl mx-auto">
           <div className="flex items-center justify-between mb-8">
             <div>
-              <h2 className="text-3xl font-bold mb-2">考试结果</h2>
-              <p className="text-gray-600 dark:text-gray-400">查看您的考试成绩和详细解析</p>
+              <h2 className="text-3xl font-bold mb-2">{t('results.title')}</h2>
+              <p className="text-gray-600 dark:text-gray-400">{t('results.subtitle')}</p>
             </div>
             <Link
               to="/"
               className="px-4 py-2 bg-gray-200 dark:bg-gray-700 hover:bg-gray-300 dark:hover:bg-gray-600 rounded-lg transition-colors"
             >
-              <i className="fa-solid fa-arrow-left mr-1"></i> 返回首页
+              <i className="fa-solid fa-arrow-left mr-1"></i> {t('common.backHome')}
             </Link>
           </div>
           
@@ -215,28 +219,30 @@ export default function Results() {
               >
                 <div className="flex flex-col md:flex-row items-center justify-between">
                   <div className="text-center md:text-left mb-6 md:mb-0">
-                    <h3 className="text-2xl font-bold mb-2">恭喜完成考试！</h3>
+                    <h3 className="text-2xl font-bold mb-2">{t('results.overviewTitle')}</h3>
                     <p className="text-gray-600 dark:text-gray-400 mb-4">
-                      您于 {new Date(examResult.endTime || examResult.startTime).toLocaleString()} 完成了考试
+                      {t('results.completedAt', {
+                        time: new Date(examResult.endTime || examResult.startTime).toLocaleString()
+                      })}
                     </p>
                     <div className="flex items-center space-x-6">
                       <div>
                         <div className="text-4xl font-bold text-blue-600 dark:text-blue-400 mb-1">
                           {stats.accuracy}%
                         </div>
-                        <div className="text-gray-600 dark:text-gray-400">正确率</div>
+                        <div className="text-gray-600 dark:text-gray-400">{t('results.accuracy')}</div>
                       </div>
                       <div>
                         <div className="text-4xl font-bold text-green-600 dark:text-green-400 mb-1">
                           {stats.correct}/{stats.total}
                         </div>
-                        <div className="text-gray-600 dark:text-gray-400">正确题数</div>
+                        <div className="text-gray-600 dark:text-gray-400">{t('results.correctCount')}</div>
                       </div>
                       <div>
                         <div className="text-4xl font-bold text-purple-600 dark:text-purple-400 mb-1">
                           {formatExamDuration()}
                         </div>
-                        <div className="text-gray-600 dark:text-gray-400">用时</div>
+                        <div className="text-gray-600 dark:text-gray-400">{t('results.duration')}</div>
                       </div>
                     </div>
                   </div>
@@ -268,14 +274,14 @@ export default function Results() {
                     className="px-6 py-3 bg-blue-600 hover:bg-blue-700 text-white font-medium rounded-lg transition-colors"
                   >
                     <i className="fa-solid fa-repeat mr-2"></i>
-                    再次考试
+                    {t('results.retake')}
                   </Link>
                   <Link
                     to="/questions"
                     className="px-6 py-3 bg-gray-200 dark:bg-gray-700 hover:bg-gray-300 dark:hover:bg-gray-600 text-gray-800 dark:text-gray-200 font-medium rounded-lg transition-colors"
                   >
                     <i className="fa-solid fa-book mr-2"></i>
-                    查看题库
+                    {t('results.viewBank')}
                   </Link>
                 </div>
               </motion.div>
@@ -283,18 +289,18 @@ export default function Results() {
               {/* 题目解析 */}
               <div className="mb-8">
                 <div className="flex items-center justify-between mb-4">
-                  <h3 className="text-xl font-bold">题目解析</h3>
+                  <h3 className="text-xl font-bold">{t('results.analysisTitle')}</h3>
                   <button
                     onClick={() => setShowIncorrectOnly(!showIncorrectOnly)}
                     className="px-4 py-2 bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 dark:hover:bg-gray-700 rounded-lg transition-colors"
                   >
                     {showIncorrectOnly ? (
                       <>
-                        <i className="fa-solid fa-eye mr-1"></i> 显示所有题目
+                        <i className="fa-solid fa-eye mr-1"></i> {t('results.showAll')}
                       </>
                     ) : (
                       <>
-                        <i className="fa-solid fa-filter mr-1"></i> 只看错题
+                        <i className="fa-solid fa-filter mr-1"></i> {t('results.showIncorrect')}
                       </>
                     )}
                   </button>
@@ -323,16 +329,16 @@ export default function Results() {
                     <div className="text-6xl text-green-500 mb-4">
                       <i className="fa-solid fa-trophy"></i>
                     </div>
-                    <h3 className="text-xl font-bold mb-2">恭喜！您没有答错的题目</h3>
+                    <h3 className="text-xl font-bold mb-2">{t('results.perfectTitle')}</h3>
                     <p className="text-gray-600 dark:text-gray-400 mb-6">
-                      您的表现非常出色，继续保持！
+                      {t('results.perfectDesc')}
                     </p>
                     <button
                       onClick={() => setShowIncorrectOnly(false)}
                       className="px-6 py-3 bg-blue-600 hover:bg-blue-700 text-white font-medium rounded-lg transition-colors"
                     >
                       <i className="fa-solid fa-eye mr-2"></i>
-                      查看所有题目解析
+                      {t('results.viewAllAnalysis')}
                     </button>
                   </div>
                 )}
@@ -343,16 +349,16 @@ export default function Results() {
               <div className="text-6xl text-gray-300 dark:text-gray-600 mb-4">
                 <i className="fa-solid fa-file-circle-exclamation"></i>
               </div>
-              <h3 className="text-xl font-bold mb-2">没有找到考试结果</h3>
+              <h3 className="text-xl font-bold mb-2">{t('results.noResultTitle')}</h3>
               <p className="text-gray-600 dark:text-gray-400 mb-6">
-                请先完成一次模拟考试
+                {t('results.noResultDesc')}
               </p>
               <Link
                 to="/exam"
                 className="inline-flex items-center px-6 py-3 bg-blue-600 hover:bg-blue-700 text-white font-medium rounded-lg transition-colors"
               >
                 <i className="fa-solid fa-play mr-2"></i>
-                开始考试
+                {t('results.startExam')}
               </Link>
             </div>
           )}
@@ -362,7 +368,7 @@ export default function Results() {
       {/* 页脚 */}
       <footer className="bg-gray-100 dark:bg-gray-800 border-t border-gray-200 dark:border-gray-700 py-8 mt-16">
         <div className="container mx-auto px-4 text-center text-gray-600 dark:text-gray-400">
-          <p>© 2026 模拟考试系统 | 设计与开发</p>
+          <p>{t('footer.copyright')}</p>
         </div>
       </footer>
     </div>

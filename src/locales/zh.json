@@ -1,0 +1,290 @@
+{
+  "common": {
+    "appName": "模拟考试系统",
+    "admin": "管理员",
+    "backHome": "返回首页",
+    "backQuestionBank": "返回题库",
+    "switchToDark": "切换到暗色模式",
+    "switchToLight": "切换到亮色模式",
+    "switchLanguage": "切换语言",
+    "loading": "加载中...",
+    "logout": "退出登录"
+  },
+  "auth": {
+    "login": {
+      "title": "用户登录",
+      "email": "邮箱",
+      "password": "密码",
+      "emailPlaceholder": "请输入邮箱",
+      "passwordPlaceholder": "请输入密码",
+      "submit": "登录",
+      "submitting": "登录中...",
+      "noAccount": "还没有账号？",
+      "registerNow": "立即注册",
+      "toastMissing": "请输入邮箱和密码",
+      "toastSuccess": "登录成功！",
+      "toastInvalid": "邮箱或密码错误",
+      "toastFail": "登录失败，请重试"
+    },
+    "register": {
+      "title": "用户注册",
+      "email": "邮箱",
+      "password": "密码",
+      "confirmPassword": "确认密码",
+      "emailPlaceholder": "请输入邮箱",
+      "passwordPlaceholder": "请输入密码",
+      "confirmPlaceholder": "请再次输入密码",
+      "submit": "注册",
+      "submitting": "注册中...",
+      "haveAccount": "已有账号？",
+      "loginNow": "立即登录",
+      "toastMissing": "请填写所有字段",
+      "toastMismatch": "两次输入的密码不一致",
+      "toastTooShort": "密码长度至少为6位",
+      "toastSuccess": "注册成功！请登录",
+      "toastExists": "邮箱已注册",
+      "toastFail": "注册失败，请重试"
+    }
+  },
+  "home": {
+    "guestTitle": "欢迎使用模拟考试系统",
+    "guestDesc": "请先登录或注册账号以开始使用",
+    "welcomeBack": "欢迎回来，",
+    "globalStatsTitle": "全局统计",
+    "globalStatsDesc": "查看所有用户的考试统计和表现",
+    "personalStatsDesc": "这是您的模拟考试数据概览",
+    "showGlobal": "显示全局统计",
+    "showPersonal": "显示个人统计",
+    "quick": {
+      "importTitle": "导入题库",
+      "importDesc": "上传包含考题的文本文件，快速添加题目到您的题库",
+      "myQuestionsTitle": "我的题库",
+      "myQuestionsDesc": "查看和管理您的所有题目，进行编辑或删除操作",
+      "startExamTitle": "开始考试",
+      "startExamDesc": "进行模拟考试，测试您的知识掌握程度"
+    },
+    "adminCard": {
+      "title": "管理员功能",
+      "desc": "作为管理员，您可以查看所有用户的统计数据",
+      "action": "查看全局统计"
+    },
+    "stats": {
+      "totalUsers": "用户总数",
+      "totalUsersDesc": "已注册所有用户",
+      "totalQuestions": "题目总数",
+      "totalQuestionsDesc": "全局题库题目数量",
+      "totalExams": "考试总数",
+      "totalExamsDesc": "所有用户的考试次数",
+      "averageScore": "平均分数",
+      "averageScoreDesc": "所有考试的平均正确率",
+      "userExams": "考试次数",
+      "userExamsDesc": "您参加的考试总数",
+      "userAverage": "平均分数",
+      "userAverageDesc": "所有考试的平均正确率",
+      "userHighest": "最高分数",
+      "userHighestDesc": "您取得的最好成绩",
+      "userLowest": "最低分数",
+      "userLowestDesc": "您取得的最低成绩"
+    },
+    "charts": {
+      "globalUsersAvg": "用户平均分统计",
+      "personalTrend": "考试成绩趋势",
+      "examLabel": "考试 {{index}}",
+      "scoreLabel": "分数",
+      "averageLabel": "平均分"
+    },
+    "actions": {
+      "import": "导入题库",
+      "create": "创建题目",
+      "startExam": "开始考试"
+    }
+  },
+  "questions": {
+    "title": "我的题库",
+    "subtitle": "管理和预览您导入的所有题目",
+    "listTitle": "题目列表",
+    "listStats": "总共 {{total}} 道题目，当前显示 {{filtered}} 道",
+    "searchPlaceholder": "搜索题目...",
+    "clearSearch": "清除搜索",
+    "noQuestionsTitle": "还没有导入题目",
+    "noQuestionsDesc": "点击上方的\"导入题目\"按钮开始添加题目到您的题库",
+    "noResultsTitle": "没有找到匹配的题目",
+    "noResultsDesc": "请尝试使用不同的搜索关键词",
+    "importButton": "导入题目",
+    "createButton": "创建题目",
+    "startExamButton": "开始考试",
+    "clearAll": "清空",
+    "toastLoadFail": "加载题目失败",
+    "toastDeleteFail": "题目删除失败",
+    "toastDeleted": "题目已删除",
+    "toastCleared": "所有题目已删除",
+    "confirmDeleteOne": "确定要删除这道题目吗？",
+    "confirmDeleteAll": "确定要删除所有题目吗？此操作不可恢复。"
+  },
+  "import": {
+    "title": "导入题库",
+    "subtitle": "上传包含考题的文本文件，系统将自动解析并添加到您的题库",
+    "importedTitle": "已导入题目",
+    "previewTitle": "题目预览",
+    "previewMore": "... 还有 {{count}} 道题目未显示 ...",
+    "totalImported": "总共导入了 {{count}} 道题目",
+    "tipsTitle": "操作提示",
+    "tips": {
+      "saved": "题目已自动保存到本地存储，刷新页面不会丢失",
+      "startExam": "点击\"开始考试\"按钮立即进行模拟测试",
+      "importMore": "您可以随时再次导入新的题目文件"
+    },
+    "buttons": {
+      "clear": "清空",
+      "showPreview": "查看预览",
+      "hidePreview": "隐藏预览",
+      "create": "创建题目",
+      "startExam": "开始考试"
+    },
+    "toast": {
+      "empty": "未解析到有效题目，请检查文件格式",
+      "saveFail": "保存题目失败，请重试",
+      "deleteFail": "删除题目失败",
+      "deleted": "题目已删除",
+      "loginFirst": "请先登录"
+    }
+  },
+  "fileImporter": {
+    "parsing": "正在解析文件...",
+    "dropOrClick": "拖放文件到此处或点击上传",
+    "support": "支持 .csv 格式文件，表头需包含 Question / Question Text / Options / Correct Answer / Explanation",
+    "requirements": "文件格式要求",
+    "req": {
+      "csv": "文件必须为 CSV 格式",
+      "headers": "表头包含 Question / Question Text / Options / Correct Answer / Explanation",
+      "optionsJson": "Options 字段是 JSON 字符串，如 {\"A\":\"选项A\",\"B\":\"选项B\"}",
+      "correctAnswer": "Correct Answer 支持单个或多个，如 \"D\" 或 \"A, C\"",
+      "explanation": "Explanation 为题目解析文本",
+      "empty": "空行将被忽略"
+    },
+    "toast": {
+      "invalidHeader": "CSV 表头不符合要求",
+      "parseError": "文件解析过程中发生错误",
+      "invalidType": "请上传 CSV 文件 (.csv)",
+      "success": "成功导入 {{count}} 道题目",
+      "noValid": "未解析到有效题目，请检查文件格式",
+      "readFail": "文件读取失败",
+      "parseFail": "文件解析失败"
+    }
+  },
+  "createQuestion": {
+    "title": "创建题目",
+    "subtitle": "手动创建新题目并添加到您的题库",
+    "questionLabel": "题目内容",
+    "questionPlaceholder": "请输入题目内容...",
+    "optionsLabel": "选项",
+    "addOption": "添加选项",
+    "optionPlaceholder": "选项 {{key}}",
+    "deleteOption": "删除选项 {{key}}",
+    "correctLabel": "正确答案",
+    "correctHint": "可多选",
+    "correctOption": "选项 {{key}}",
+    "selected": "已选择: {{answers}}",
+    "explanationLabel": "解析（可选）",
+    "explanationPlaceholder": "请输入题目的详细解析...",
+    "saveAndAdd": "保存并创建另一题",
+    "saveAndFinish": "保存并完成",
+    "saving": "保存中...",
+    "tipsTitle": "创建题目提示",
+    "tips": {
+      "saved": "题目创建后将自动保存到您的题库中",
+      "multiOptions": "您可以创建多个选项，但至少需要选择一个正确答案",
+      "explanation": "解析内容有助于在考试后理解题目"
+    },
+    "toast": {
+      "needOption": "至少需要保留一个选项",
+      "missingQuestion": "请输入题目内容",
+      "missingOption": "请至少输入一个选项",
+      "missingCorrect": "请选择正确答案",
+      "correctEmpty": "正确答案对应的选项不能为空",
+      "loginFirst": "请先登录",
+      "saveFail": "保存题目失败，请重试",
+      "created": "题目 #{{number}} 创建成功！"
+    }
+  },
+  "exam": {
+    "durationLabel": "考试时长（分钟）",
+    "loadFail": "加载题目失败",
+    "noQuestions": "没有可用的题目，请先导入题目",
+    "loginFirst": "请先登录",
+    "preStartTitle": "准备开始模拟考试",
+    "preStartDesc": "本次考试共有 {{count}} 道题目，考试时长为 {{duration}} 分钟",
+    "goImport": "去导入题目",
+    "rules": {
+      "title": "考试规则：",
+      "timing": "考试开始后将开始计时，时间结束后自动提交",
+      "autoSave": "您可以随时切换题目，系统会自动保存您的答案",
+      "showResults": "提交后将立即显示您的考试成绩和详细解析",
+      "multiChoice": "部分题目支持多选，请选择所有正确答案"
+    },
+    "navigation": {
+      "title": "题目导航：",
+      "current": "当前",
+      "answered": "已答",
+      "unanswered": "未答"
+    },
+    "currentQuestion": "题目 {{current}}/{{total}}",
+    "remainingQuestions": "剩余 {{count}} 道题未答",
+    "multiChoiceHint": "多选题，请选择所有正确答案",
+    "saveResultFail": "保存考试结果失败，请重试",
+    "saveAnswersFail": "保存答题记录失败，请重试",
+    "timeUp": "考试时间已结束，自动提交试卷",
+    "title": "模拟考试",
+    "subtitle": "回答以下题目以完成考试",
+    "start": "开始考试",
+    "submit": "提交试卷",
+    "prev": "上一题",
+    "next": "下一题",
+    "jumpTo": "跳转题目",
+    "progress": "当前进度",
+    "questionCount": "共 {{count}} 题",
+    "confirmSubmit": "确定要提交试卷吗？提交后将计算成绩。",
+    "viewResults": "查看考试结果",
+    "exit": "退出考试"
+  },
+  "results": {
+    "title": "考试结果",
+    "subtitle": "查看您的考试成绩和详细解析",
+    "overviewTitle": "恭喜完成考试！",
+    "completedAt": "您于 {{time}} 完成了考试",
+    "accuracy": "正确率",
+    "correctCount": "正确题数",
+    "duration": "用时",
+    "retake": "再次考试",
+    "viewBank": "查看题库",
+    "analysisTitle": "题目解析",
+    "showAll": "显示所有题目",
+    "showIncorrect": "只看错题",
+    "perfectTitle": "恭喜！您没有答错的题目",
+    "perfectDesc": "您的表现非常出色，继续保持！",
+    "viewAllAnalysis": "查看所有题目解析",
+    "noResultTitle": "没有找到考试结果",
+    "noResultDesc": "请先完成一次模拟考试",
+    "startExam": "开始考试",
+    "pie": {
+      "correct": "正确",
+      "incorrect": "错误"
+    }
+  },
+  "questionCard": {
+    "questionLabel": "问题",
+    "multipleChoice": "多选题",
+    "deleteQuestion": "删除题目",
+    "correctAnswer": "正确答案",
+    "yourAnswer": "您的答案",
+    "analysis": "解析",
+    "correctTag": "正确答案",
+    "yourTag": "您的答案"
+  },
+  "examTimer": {
+    "remaining": "剩余时间"
+  },
+  "footer": {
+    "copyright": "© 2026 模拟考试系统 | 设计与开发"
+  }
+}

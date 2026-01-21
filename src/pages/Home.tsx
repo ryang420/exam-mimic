@@ -6,10 +6,13 @@ import { motion } from 'framer-motion';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, BarChart, Bar, Cell } from 'recharts';
 import { UserStats } from '@/types';
 import { supabase } from '@/lib/supabase';
+import { useTranslation } from 'react-i18next';
+import { LanguageSwitcher } from '@/components/LanguageSwitcher';
 
 export default function Home() {
   const { theme, toggleTheme } = useTheme();
   const { currentUser, logout, getAllUsers } = useContext(AuthContext);
+  const { t } = useTranslation();
   const [showGlobalStats, setShowGlobalStats] = useState(false);
   const [userStats, setUserStats] = useState({
     totalExams: 0,
@@ -24,8 +27,7 @@ export default function Home() {
     averageScore: 0,
     usersStats: [] as UserStats[]
   });
-  const [chartData, setChartData] = useState<any[]>([]);
-  const [globalChartData, setGlobalChartData] = useState<any[]>([]);
+  const [chartData, setChartData] = useState<Array<{ index: number; score: number }>>([]);
   
   // 加载用户统计数据
   useEffect(() => {
@@ -68,8 +70,8 @@ export default function Home() {
         });
 
         const chartData = data.slice(-5).map((exam: any, index: number) => ({
-          name: `考试 ${index + 1}`,
-          分数: exam.score ?? 0
+          index: index + 1,
+          score: exam.score ?? 0
         }));
         setChartData(chartData);
       }
@@ -138,14 +140,19 @@ export default function Home() {
       usersStats
     });
 
-    const chartData = usersStats.slice(0, 8).map((user) => ({
-      name: user.username.length > 6 ? `${user.username.substring(0, 6)}...` : user.username,
-      平均分: user.averageScore
-    }));
-    setGlobalChartData(chartData);
   };
   
   const COLORS = ['#0088FE', '#00C49F', '#FFBB28', '#FF8042', '#8884d8', '#82ca9d', '#ffc658', '#a4de6c'];
+  const scoreLabel = t('home.charts.scoreLabel');
+  const averageLabel = t('home.charts.averageLabel');
+  const chartDataWithLabels = chartData.map((item) => ({
+    ...item,
+    name: t('home.charts.examLabel', { index: item.index })
+  }));
+  const globalChartData = globalStats.usersStats.slice(0, 8).map((user) => ({
+    name: user.username.length > 6 ? `${user.username.substring(0, 6)}...` : user.username,
+    average: user.averageScore
+  }));
   
   if (!currentUser) {
     return (
@@ -159,9 +166,9 @@ export default function Home() {
             <div className="text-6xl text-blue-500 mb-6">
               <i className="fa-solid fa-graduation-cap"></i>
             </div>
-            <h2 className="text-3xl font-bold mb-4">欢迎使用模拟考试系统</h2>
+            <h2 className="text-3xl font-bold mb-4">{t('home.guestTitle')}</h2>
             <p className="text-gray-600 dark:text-gray-400 mb-8">
-              请先登录或注册账号以开始使用
+              {t('home.guestDesc')}
             </p>
             <div className="flex flex-col sm:flex-row justify-center gap-4">
               <Link
@@ -169,14 +176,14 @@ export default function Home() {
                 className="px-6 py-3 bg-blue-600 hover:bg-blue-700 text-white font-medium rounded-xl transition-colors"
               >
                 <i className="fa-solid fa-sign-in-alt mr-2"></i>
-                登录
+                {t('auth.login.submit')}
               </Link>
               <Link
                 to="/register"
                 className="px-6 py-3 bg-gray-200 dark:bg-gray-700 hover:bg-gray-300 dark:hover:bg-gray-600 text-gray-800 dark:text-gray-200 font-medium rounded-xl transition-colors"
               >
                 <i className="fa-solid fa-user-plus mr-2"></i>
-                注册
+                {t('auth.register.submit')}
               </Link>
             </div>
           </motion.div>
@@ -192,7 +199,7 @@ export default function Home() {
         <div className="container mx-auto px-4 py-4 flex justify-between items-center">
           <h1 className="text-2xl font-bold text-blue-600 dark:text-blue-400">
             <i className="fa-solid fa-graduation-cap mr-2"></i>
-            模拟考试系统
+            {t('common.appName')}
           </h1>
           <div className="flex items-center space-x-4">
             {/* 管理员才显示全局统计切换 */}
@@ -205,7 +212,7 @@ export default function Home() {
                     : 'bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300'
                 }`}
               >
-                {showGlobalStats ? '显示个人统计' : '显示全局统计'}
+                {showGlobalStats ? t('home.showPersonal') : t('home.showGlobal')}
               </button>
             )}
             <div className="relative">
@@ -216,7 +223,7 @@ export default function Home() {
                 <span>{currentUser.username}</span>
                 {currentUser.isAdmin && (
                   <span className="text-xs bg-blue-100 dark:bg-blue-900/50 text-blue-600 dark:text-blue-400 px-2 py-0.5 rounded-full">
-                    管理员
+                    {t('common.admin')}
                   </span>
                 )}
               </button>
@@ -224,14 +231,15 @@ export default function Home() {
             <button
               onClick={logout}
               className="p-2 rounded-full bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors"
-              aria-label="退出登录"
+              aria-label={t('common.logout')}
             >
               <i className="fa-solid fa-right-from-bracket"></i>
             </button>
+            <LanguageSwitcher className="p-2 rounded-full bg-gray-100 dark:bg-gray-700 transition-colors text-gray-600 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600" />
             <button
               onClick={toggleTheme}
               className="p-2 rounded-full bg-gray-100 dark:bg-gray-700 transition-colors"
-              aria-label={theme === 'light' ? '切换到暗色模式' : '切换到亮色模式'}
+              aria-label={theme === 'light' ? t('common.switchToDark') : t('common.switchToLight')}
             >
               {theme === 'light' ? (
                 <i className="fa-solid fa-moon"></i>
@@ -255,12 +263,13 @@ export default function Home() {
                 transition={{ duration: 0.5 }}
               >
                 <h2 className="text-3xl font-bold mb-2">
-                  {showGlobalStats && currentUser.isAdmin ? '全局统计' : '欢迎回来，'}{currentUser.username}
+                  {showGlobalStats && currentUser.isAdmin ? t('home.globalStatsTitle') : t('home.welcomeBack')}
+                  {currentUser.username}
                 </h2>
                 <p className="text-gray-600 dark:text-gray-400">
                   {showGlobalStats && currentUser.isAdmin 
-                    ? '查看所有用户的考试统计和表现' 
-                    : '这是您的模拟考试数据概览'}
+                    ? t('home.globalStatsDesc') 
+                    : t('home.personalStatsDesc')}
                 </p>
               </motion.div>
             </div>
@@ -270,19 +279,19 @@ export default function Home() {
                   to="/import"
                   className="px-4 py-2 bg-blue-100 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 rounded-lg hover:bg-blue-200 dark:hover:bg-blue-900/50 transition-colors"
                 >
-                  <i className="fa-solid fa-file-import mr-1"></i> 导入题库
+                  <i className="fa-solid fa-file-import mr-1"></i> {t('home.actions.import')}
                 </Link>
                 <Link
                   to="/create-question"
                   className="px-4 py-2 bg-purple-100 dark:bg-purple-900/30 text-purple-600 dark:text-purple-400 rounded-lg hover:bg-purple-200 dark:hover:bg-purple-900/50 transition-colors"
                 >
-                  <i className="fa-solid fa-plus mr-1"></i> 创建题目
+                  <i className="fa-solid fa-plus mr-1"></i> {t('home.actions.create')}
                 </Link>
                 <Link
                   to="/exam"
                   className="px-4 py-2 bg-green-100 dark:bg-green-900/30 text-green-600 dark:text-green-400 rounded-lg hover:bg-green-200 dark:hover:bg-green-900/50 transition-colors"
                 >
-                  <i className="fa-solid fa-pen-to-square mr-1"></i> 开始考试
+                  <i className="fa-solid fa-pen-to-square mr-1"></i> {t('home.actions.startExam')}
                 </Link>
               </div>
             </div>
@@ -298,7 +307,7 @@ export default function Home() {
                 className="bg-white dark:bg-gray-800 rounded-2xl shadow-md border border-gray-100 dark:border-gray-700 p-6"
               >
                 <div className="flex items-center justify-between mb-4">
-                  <h3 className="text-lg font-semibold text-gray-600 dark:text-gray-300">用户总数</h3>
+                  <h3 className="text-lg font-semibold text-gray-600 dark:text-gray-300">{t('home.stats.totalUsers')}</h3>
                   <div className="p-2 bg-blue-100 dark:bg-blue-900/30 rounded-full text-blue-600 dark:text-blue-400">
                     <i className="fa-solid fa-users"></i>
                   </div>
@@ -308,7 +317,7 @@ export default function Home() {
                 </div>
                 <div className="mt-2 text-sm text-green-600 dark:text-green-400 flex items-center">
                   <i className="fa-solid fa-arrow-up mr-1"></i>
-                  <span>已注册所有用户</span>
+                  <span>{t('home.stats.totalUsersDesc')}</span>
                 </div>
               </motion.div>
               
@@ -319,7 +328,7 @@ export default function Home() {
                 className="bg-white dark:bg-gray-800 rounded-2xl shadow-md border border-gray-100 dark:border-gray-700 p-6"
               >
                 <div className="flex items-center justify-between mb-4">
-                  <h3 className="text-lg font-semibold text-gray-600 dark:text-gray-300">题目总数</h3>
+                  <h3 className="text-lg font-semibold text-gray-600 dark:text-gray-300">{t('home.stats.totalQuestions')}</h3>
                   <div className="p-2 bg-purple-100 dark:bg-purple-900/30 rounded-full text-purple-600 dark:text-purple-400">
                     <i className="fa-solid fa-file-lines"></i>
                   </div>
@@ -328,7 +337,7 @@ export default function Home() {
                   {globalStats.totalQuestions}
                 </div>
                 <div className="mt-2 text-sm text-gray-600 dark:text-gray-400">
-                  全局题库题目数量
+                  {t('home.stats.totalQuestionsDesc')}
                 </div>
               </motion.div>
               
@@ -339,7 +348,7 @@ export default function Home() {
                 className="bg-white dark:bg-gray-800 rounded-2xl shadow-md border border-gray-100 dark:border-gray-700 p-6"
               >
                 <div className="flex items-center justify-between mb-4">
-                  <h3 className="text-lg font-semibold text-gray-600 dark:text-gray-300">考试总数</h3>
+                  <h3 className="text-lg font-semibold text-gray-600 dark:text-gray-300">{t('home.stats.totalExams')}</h3>
                   <div className="p-2 bg-green-100 dark:bg-green-900/30 rounded-full text-green-600 dark:text-green-400">
                     <i className="fa-solid fa-pen-to-square"></i>
                   </div>
@@ -348,7 +357,7 @@ export default function Home() {
                   {globalStats.totalExams}
                 </div>
                 <div className="mt-2 text-sm text-gray-600 dark:text-gray-400">
-                  所有用户的考试次数
+                  {t('home.stats.totalExamsDesc')}
                 </div>
               </motion.div>
               
@@ -359,7 +368,7 @@ export default function Home() {
                 className="bg-white dark:bg-gray-800 rounded-2xl shadow-md border border-gray-100 dark:border-gray-700 p-6"
               >
                 <div className="flex items-center justify-between mb-4">
-                  <h3 className="text-lg font-semibold text-gray-600 dark:text-gray-300">平均分数</h3>
+                  <h3 className="text-lg font-semibold text-gray-600 dark:text-gray-300">{t('home.stats.averageScore')}</h3>
                   <div className="p-2 bg-orange-100 dark:bg-orange-900/30 rounded-full text-orange-600 dark:text-orange-400">
                     <i className="fa-solid fa-star"></i>
                   </div>
@@ -368,7 +377,7 @@ export default function Home() {
                   {globalStats.averageScore}%
                 </div>
                 <div className="mt-2 text-sm text-gray-600 dark:text-gray-400">
-                  所有考试的平均正确率
+                  {t('home.stats.averageScoreDesc')}
                 </div>
               </motion.div>
             </div>
@@ -382,7 +391,7 @@ export default function Home() {
                 className="bg-white dark:bg-gray-800 rounded-2xl shadow-md border border-gray-100 dark:border-gray-700 p-6"
               >
                 <div className="flex items-center justify-between mb-4">
-                  <h3 className="text-lg font-semibold text-gray-600 dark:text-gray-300">考试次数</h3>
+                  <h3 className="text-lg font-semibold text-gray-600 dark:text-gray-300">{t('home.stats.userExams')}</h3>
                   <div className="p-2 bg-blue-100 dark:bg-blue-900/30 rounded-full text-blue-600 dark:text-blue-400">
                     <i className="fa-solid fa-pen-to-square"></i>
                   </div>
@@ -391,7 +400,7 @@ export default function Home() {
                   {userStats.totalExams}
                 </div>
                 <div className="mt-2 text-sm text-gray-600 dark:text-gray-400">
-                  您参加的考试总数
+                  {t('home.stats.userExamsDesc')}
                 </div>
               </motion.div>
               
@@ -402,7 +411,7 @@ export default function Home() {
                 className="bg-white dark:bg-gray-800 rounded-2xl shadow-md border border-gray-100 dark:border-gray-700 p-6"
               >
                 <div className="flex items-center justify-between mb-4">
-                  <h3 className="text-lg font-semibold text-gray-600 dark:text-gray-300">平均分数</h3>
+                  <h3 className="text-lg font-semibold text-gray-600 dark:text-gray-300">{t('home.stats.userAverage')}</h3>
                   <div className="p-2 bg-green-100 dark:bg-green-900/30 rounded-full text-green-600 dark:text-green-400">
                     <i className="fa-solid fa-star"></i>
                   </div>
@@ -411,7 +420,7 @@ export default function Home() {
                   {userStats.averageScore}%
                 </div>
                 <div className="mt-2 text-sm text-gray-600 dark:text-gray-400">
-                  所有考试的平均正确率
+                  {t('home.stats.userAverageDesc')}
                 </div>
               </motion.div>
               
@@ -422,7 +431,7 @@ export default function Home() {
                 className="bg-white dark:bg-gray-800 rounded-2xl shadow-md border border-gray-100 dark:border-gray-700 p-6"
               >
                 <div className="flex items-center justify-between mb-4">
-                  <h3 className="text-lg font-semibold text-gray-600 dark:text-gray-300">最高分数</h3>
+                  <h3 className="text-lg font-semibold text-gray-600 dark:text-gray-300">{t('home.stats.userHighest')}</h3>
                   <div className="p-2 bg-purple-100 dark:bg-purple-900/30 rounded-full text-purple-600 dark:text-purple-400">
                     <i className="fa-solid fa-trophy"></i>
                   </div>
@@ -431,7 +440,7 @@ export default function Home() {
                   {userStats.highestScore}%
                 </div>
                 <div className="mt-2 text-sm text-gray-600 dark:text-gray-400">
-                  您取得的最好成绩
+                  {t('home.stats.userHighestDesc')}
                 </div>
               </motion.div>
               
@@ -442,7 +451,7 @@ export default function Home() {
                 className="bg-white dark:bg-gray-800 rounded-2xl shadow-md border border-gray-100 dark:border-gray-700 p-6"
               >
                 <div className="flex items-center justify-between mb-4">
-                  <h3 className="text-lg font-semibold text-gray-600 dark:text-gray-300">最低分数</h3>
+                  <h3 className="text-lg font-semibold text-gray-600 dark:text-gray-300">{t('home.stats.userLowest')}</h3>
                   <div className="p-2 bg-orange-100 dark:bg-orange-900/30 rounded-full text-orange-600 dark:text-orange-400">
                     <i className="fa-solid fa-chart-line"></i>
                   </div>
@@ -451,7 +460,7 @@ export default function Home() {
                   {userStats.lowestScore}%
                 </div>
                 <div className="mt-2 text-sm text-gray-600 dark:text-gray-400">
-                  您取得的最低成绩
+                  {t('home.stats.userLowestDesc')}
                 </div>
               </motion.div>
             </div>
@@ -466,7 +475,7 @@ export default function Home() {
               transition={{ duration: 0.5 }}
               className="bg-white dark:bg-gray-800 rounded-2xl shadow-md border border-gray-100 dark:border-gray-700 p-6 mb-8"
             >
-              <h3 className="text-xl font-bold mb-6">用户平均分统计</h3>
+              <h3 className="text-xl font-bold mb-6">{t('home.charts.globalUsersAvg')}</h3>
               <div className="h-80">
                 <ResponsiveContainer width="100%" height="100%">
                   <BarChart
@@ -483,7 +492,7 @@ export default function Home() {
                         color: theme === 'dark' ? 'white' : 'black'
                       }} 
                     />
-                    <Bar dataKey="平均分">
+                    <Bar dataKey="average" name={averageLabel}>
                       {globalChartData.map((entry, index) => (
                         <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
                       ))}
@@ -500,11 +509,11 @@ export default function Home() {
               transition={{ duration: 0.5 }}
               className="bg-white dark:bg-gray-800 rounded-2xl shadow-md border border-gray-100 dark:border-gray-700 p-6 mb-8"
             >
-              <h3 className="text-xl font-bold mb-6">考试成绩趋势</h3>
+              <h3 className="text-xl font-bold mb-6">{t('home.charts.personalTrend')}</h3>
               <div className="h-80">
                 <ResponsiveContainer width="100%" height="100%">
                   <LineChart
-                    data={chartData}
+                    data={chartDataWithLabels}
                     margin={{ top: 20, right: 30, left: 20, bottom: 30 }}
                   >
                     <CartesianGrid strokeDasharray="3 3" />
@@ -517,10 +526,11 @@ export default function Home() {
                         color: theme === 'dark' ? 'white' : 'black'
                       }} 
                     />
-                    <Line 
-                      type="monotone" 
-                      dataKey="分数" 
-                      stroke="#3b82f6" 
+                    <Line
+                      type="monotone"
+                      dataKey="score"
+                      name={scoreLabel}
+                      stroke="#3b82f6"
                       strokeWidth={3}
                       dot={{ r: 6 }}
                       activeDot={{ r: 8 }}
@@ -545,9 +555,9 @@ export default function Home() {
               <div className="text-3xl text-blue-600 dark:text-blue-400 mb-4">
                 <i className="fa-solid fa-file-import"></i>
               </div>
-              <h3 className="text-xl font-bold mb-2">导入题库</h3>
+              <h3 className="text-xl font-bold mb-2">{t('home.quick.importTitle')}</h3>
               <p className="text-gray-600 dark:text-gray-400">
-                上传包含考题的文本文件，快速添加题目到您的题库
+                {t('home.quick.importDesc')}
               </p>
             </Link>
             
@@ -558,9 +568,9 @@ export default function Home() {
               <div className="text-3xl text-purple-600 dark:text-purple-400 mb-4">
                 <i className="fa-solid fa-book"></i>
               </div>
-              <h3 className="text-xl font-bold mb-2">我的题库</h3>
+              <h3 className="text-xl font-bold mb-2">{t('home.quick.myQuestionsTitle')}</h3>
               <p className="text-gray-600 dark:text-gray-400">
-                查看和管理您的所有题目，进行编辑或删除操作
+                {t('home.quick.myQuestionsDesc')}
               </p>
             </Link>
             
@@ -571,9 +581,9 @@ export default function Home() {
               <div className="text-3xl text-green-600 dark:text-green-400 mb-4">
                 <i className="fa-solid fa-pen-to-square"></i>
               </div>
-              <h3 className="text-xl font-bold mb-2">开始考试</h3>
+              <h3 className="text-xl font-bold mb-2">{t('home.quick.startExamTitle')}</h3>
               <p className="text-gray-600 dark:text-gray-400">
-                进行模拟考试，测试您的知识掌握程度
+                {t('home.quick.startExamDesc')}
               </p>
             </Link>
           </motion.div>
@@ -588,16 +598,16 @@ export default function Home() {
             >
               <div className="flex items-start justify-between">
                 <div>
-                  <h3 className="text-xl font-bold mb-2">管理员功能</h3>
+                  <h3 className="text-xl font-bold mb-2">{t('home.adminCard.title')}</h3>
                   <p className="text-gray-600 dark:text-gray-400 mb-4">
-                    作为管理员，您可以查看所有用户的统计数据
+                    {t('home.adminCard.desc')}
                   </p>
                   <button
                     onClick={() => setShowGlobalStats(true)}
                     className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors"
                   >
                     <i className="fa-solid fa-chart-pie mr-2"></i>
-                    查看全局统计
+                    {t('home.adminCard.action')}
                   </button>
                 </div>
                 <div className="text-5xl text-gray-400">
@@ -612,7 +622,7 @@ export default function Home() {
       {/* 页脚 */}
       <footer className="bg-gray-100 dark:bg-gray-800 border-t border-gray-200 dark:border-gray-700 py-8 mt-16">
         <div className="container mx-auto px-4 text-center text-gray-600 dark:text-gray-400">
-          <p>© 2026 模拟考试系统 | 设计与开发</p>
+          <p>{t('footer.copyright')}</p>
         </div>
       </footer>
     </div>
