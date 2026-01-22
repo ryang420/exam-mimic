@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Routes, Route, useNavigate, Navigate } from 'react-router-dom';
 import { AuthContext, User } from './contexts/authContext';
@@ -205,41 +205,72 @@ function App() {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [currentUser, setCurrentUser] = useState<User | null>(null);
   const [authReady, setAuthReady] = useState(false);
+  const activeUserIdRef = useRef<string | null>(null);
   
   // 初始化应用
   useEffect(() => {
     let isMounted = true;
 
-    const initAuth = async () => {
-      const { data } = await supabase.auth.getSession();
-      if (data.session?.user) {
-        const profile = await ensureProfile(data.session.user);
-        if (isMounted) {
-          setIsAuthenticated(true);
-          setCurrentUser(buildUser(data.session.user, profile));
-          migrateLocalStorageData(buildUser(data.session.user, profile), profile);
+    const hydrateProfile = async (authUser: any) => {
+      try {
+        const profile = await ensureProfile(authUser);
+        if (!isMounted || activeUserIdRef.current !== authUser.id) {
+          return;
         }
+        setCurrentUser(buildUser(authUser, profile));
+        if (profile) {
+          migrateLocalStorageData(buildUser(authUser, profile), profile);
+        }
+      } catch (error) {
+        console.warn('Failed to hydrate user profile', error);
+      }
+    };
+
+    const initAuth = async () => {
+      try {
+        const { data } = await supabase.auth.getSession();
+        const sessionUser = data.session?.user ?? null;
+
+        if (sessionUser) {
+          activeUserIdRef.current = sessionUser.id;
+          if (isMounted) {
+            setIsAuthenticated(true);
+            setCurrentUser(buildUser(sessionUser, null));
+          }
+          void hydrateProfile(sessionUser);
+        } else {
+          activeUserIdRef.current = null;
+          if (isMounted) {
+            setIsAuthenticated(false);
+            setCurrentUser(null);
+          }
+        }
+      } catch (error) {
+        console.warn('Failed to init auth', error);
+        activeUserIdRef.current = null;
+        if (isMounted) {
+          setIsAuthenticated(false);
+          setCurrentUser(null);
+        }
+      } finally {
         if (isMounted) {
           setAuthReady(true);
         }
-        return;
-      }
-
-      if (isMounted) {
-        setAuthReady(true);
       }
     };
 
     initAuth();
 
-    const { data: authListener } = supabase.auth.onAuthStateChange(async (_event, session) => {
+    const { data: authListener } = supabase.auth.onAuthStateChange((_event, session) => {
       if (!isMounted) return;
-      if (session?.user) {
-        const profile = await ensureProfile(session.user);
+      const sessionUser = session?.user ?? null;
+      if (sessionUser) {
+        activeUserIdRef.current = sessionUser.id;
         setIsAuthenticated(true);
-        setCurrentUser(buildUser(session.user, profile));
-        migrateLocalStorageData(buildUser(session.user, profile), profile);
+        setCurrentUser(buildUser(sessionUser, null));
+        void hydrateProfile(sessionUser);
       } else {
+        activeUserIdRef.current = null;
         setIsAuthenticated(false);
         setCurrentUser(null);
       }
@@ -350,7 +381,11 @@ function App() {
             element={
               authReady
                 ? (isAuthenticated ? <Home /> : <Navigate to="/login" replace />)
-                : <Login />
+                : (
+                  <div className="flex items-center justify-center min-h-screen">
+                    <div className="w-8 h-8 border-4 border-blue-600 border-t-transparent rounded-full animate-spin"></div>
+                  </div>
+                )
             }
           />
           <Route path="/login" element={<Login />} />
