@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useContext } from 'react';
+import { useState, useEffect, useContext } from 'react';
 import { useTheme } from '@/hooks/useTheme';
 import { Link } from 'react-router-dom';
 import { AuthContext } from '@/contexts/authContext';
@@ -493,7 +493,7 @@ export default function Home() {
                       }} 
                     />
                     <Bar dataKey="average" name={averageLabel}>
-                      {globalChartData.map((entry, index) => (
+                      {globalChartData.map((_entry, index) => (
                         <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
                       ))}
                     </Bar>
