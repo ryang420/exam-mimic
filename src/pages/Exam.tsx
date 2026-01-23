@@ -356,14 +356,26 @@ export default function Exam() {
               
               {questions.length === 0 ? (
                 <div className="mb-8">
-                  <p className="text-red-500 dark:text-red-400 mb-4">{t('exam.noQuestions')}</p>
-                  <Link
-                    to="/import"
-                    className="inline-flex items-center px-6 py-3 bg-blue-600 hover:bg-blue-700 text-white font-medium rounded-lg transition-colors"
-                  >
-                    <i className="fa-solid fa-file-import mr-2"></i>
-                    {t('exam.goImport')}
-                  </Link>
+                  <p className="text-red-500 dark:text-red-400 mb-4">
+                    {currentUser?.isAdmin ? t('exam.noQuestionsAdmin') : t('exam.noQuestionsUser')}
+                  </p>
+                  {currentUser?.isAdmin ? (
+                    <Link
+                      to="/import"
+                      className="inline-flex items-center px-6 py-3 bg-blue-600 hover:bg-blue-700 text-white font-medium rounded-lg transition-colors"
+                    >
+                      <i className="fa-solid fa-file-import mr-2"></i>
+                      {t('exam.goImport')}
+                    </Link>
+                  ) : (
+                    <Link
+                      to="/"
+                      className="inline-flex items-center px-6 py-3 bg-gray-200 dark:bg-gray-700 hover:bg-gray-300 dark:hover:bg-gray-600 text-gray-800 dark:text-gray-200 font-medium rounded-lg transition-colors"
+                    >
+                      <i className="fa-solid fa-arrow-left mr-2"></i>
+                      {t('common.backHome')}
+                    </Link>
+                  )}
                 </div>
               ) : (
                 <motion.button

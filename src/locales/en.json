@@ -233,6 +233,8 @@
     "durationLabel": "Exam duration (minutes)",
     "loadFail": "Failed to load questions",
     "noQuestions": "No available questions. Please import questions first",
+    "noQuestionsAdmin": "No available questions. Please import questions first",
+    "noQuestionsUser": "No available questions yet. Please contact an admin.",
     "loginFirst": "Please log in first",
     "preStartTitle": "Ready to start the mock exam",
     "preStartDesc": "This exam has {{count}} questions and lasts {{duration}} minutes",

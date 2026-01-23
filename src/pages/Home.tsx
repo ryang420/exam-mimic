@@ -275,18 +275,22 @@ export default function Home() {
             </div>
             <div className="mt-4 md:mt-0">
               <div className="flex flex-wrap gap-3">
-                <Link
-                  to="/import"
-                  className="px-4 py-2 bg-blue-100 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 rounded-lg hover:bg-blue-200 dark:hover:bg-blue-900/50 transition-colors"
-                >
-                  <i className="fa-solid fa-file-import mr-1"></i> {t('home.actions.import')}
-                </Link>
-                <Link
-                  to="/create-question"
-                  className="px-4 py-2 bg-purple-100 dark:bg-purple-900/30 text-purple-600 dark:text-purple-400 rounded-lg hover:bg-purple-200 dark:hover:bg-purple-900/50 transition-colors"
-                >
-                  <i className="fa-solid fa-plus mr-1"></i> {t('home.actions.create')}
-                </Link>
+                {currentUser.isAdmin && (
+                  <>
+                    <Link
+                      to="/import"
+                      className="px-4 py-2 bg-blue-100 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 rounded-lg hover:bg-blue-200 dark:hover:bg-blue-900/50 transition-colors"
+                    >
+                      <i className="fa-solid fa-file-import mr-1"></i> {t('home.actions.import')}
+                    </Link>
+                    <Link
+                      to="/create-question"
+                      className="px-4 py-2 bg-purple-100 dark:bg-purple-900/30 text-purple-600 dark:text-purple-400 rounded-lg hover:bg-purple-200 dark:hover:bg-purple-900/50 transition-colors"
+                    >
+                      <i className="fa-solid fa-plus mr-1"></i> {t('home.actions.create')}
+                    </Link>
+                  </>
+                )}
                 <Link
                   to="/exam"
                   className="px-4 py-2 bg-green-100 dark:bg-green-900/30 text-green-600 dark:text-green-400 rounded-lg hover:bg-green-200 dark:hover:bg-green-900/50 transition-colors"
@@ -548,32 +552,36 @@ export default function Home() {
             transition={{ duration: 0.5 }}
             className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8"
           >
-            <Link
-              to="/import"
-              className="block bg-gradient-to-br from-blue-50 to-blue-100 dark:from-blue-900/20 dark:to-blue-800/20 rounded-2xl shadow-md border border-blue-200 dark:border-blue-800 p-6 hover:shadow-lg transition-shadow"
-            >
-              <div className="text-3xl text-blue-600 dark:text-blue-400 mb-4">
-                <i className="fa-solid fa-file-import"></i>
-              </div>
-              <h3 className="text-xl font-bold mb-2">{t('home.quick.importTitle')}</h3>
-              <p className="text-gray-600 dark:text-gray-400">
-                {t('home.quick.importDesc')}
-              </p>
-            </Link>
-            
-            <Link
-              to="/questions"
-              className="block bg-gradient-to-br from-purple-50 to-purple-100 dark:from-purple-900/20 dark:to-purple-800/20 rounded-2xl shadow-md border border-purple-200 dark:border-purple-800 p-6 hover:shadow-lg transition-shadow"
-            >
-              <div className="text-3xl text-purple-600 dark:text-purple-400 mb-4">
-                <i className="fa-solid fa-book"></i>
-              </div>
-              <h3 className="text-xl font-bold mb-2">{t('home.quick.myQuestionsTitle')}</h3>
-              <p className="text-gray-600 dark:text-gray-400">
-                {t('home.quick.myQuestionsDesc')}
-              </p>
-            </Link>
-            
+            {currentUser.isAdmin && (
+              <>
+                <Link
+                  to="/import"
+                  className="block bg-gradient-to-br from-blue-50 to-blue-100 dark:from-blue-900/20 dark:to-blue-800/20 rounded-2xl shadow-md border border-blue-200 dark:border-blue-800 p-6 hover:shadow-lg transition-shadow"
+                >
+                  <div className="text-3xl text-blue-600 dark:text-blue-400 mb-4">
+                    <i className="fa-solid fa-file-import"></i>
+                  </div>
+                  <h3 className="text-xl font-bold mb-2">{t('home.quick.importTitle')}</h3>
+                  <p className="text-gray-600 dark:text-gray-400">
+                    {t('home.quick.importDesc')}
+                  </p>
+                </Link>
+
+                <Link
+                  to="/questions"
+                  className="block bg-gradient-to-br from-purple-50 to-purple-100 dark:from-purple-900/20 dark:to-purple-800/20 rounded-2xl shadow-md border border-purple-200 dark:border-purple-800 p-6 hover:shadow-lg transition-shadow"
+                >
+                  <div className="text-3xl text-purple-600 dark:text-purple-400 mb-4">
+                    <i className="fa-solid fa-book"></i>
+                  </div>
+                  <h3 className="text-xl font-bold mb-2">{t('home.quick.myQuestionsTitle')}</h3>
+                  <p className="text-gray-600 dark:text-gray-400">
+                    {t('home.quick.myQuestionsDesc')}
+                  </p>
+                </Link>
+              </>
+            )}
+
             <Link
               to="/exam"
               className="block bg-gradient-to-br from-green-50 to-green-100 dark:from-green-900/20 dark:to-green-800/20 rounded-2xl shadow-md border border-green-200 dark:border-green-800 p-6 hover:shadow-lg transition-shadow"

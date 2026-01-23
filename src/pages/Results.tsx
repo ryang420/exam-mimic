@@ -282,13 +282,15 @@ export default function Results() {
                     <i className="fa-solid fa-repeat mr-2"></i>
                     {t('results.retake')}
                   </Link>
-                  <Link
-                    to="/questions"
-                    className="px-6 py-3 bg-gray-200 dark:bg-gray-700 hover:bg-gray-300 dark:hover:bg-gray-600 text-gray-800 dark:text-gray-200 font-medium rounded-lg transition-colors"
-                  >
-                    <i className="fa-solid fa-book mr-2"></i>
-                    {t('results.viewBank')}
-                  </Link>
+                  {currentUser?.isAdmin && (
+                    <Link
+                      to="/questions"
+                      className="px-6 py-3 bg-gray-200 dark:bg-gray-700 hover:bg-gray-300 dark:hover:bg-gray-600 text-gray-800 dark:text-gray-200 font-medium rounded-lg transition-colors"
+                    >
+                      <i className="fa-solid fa-book mr-2"></i>
+                      {t('results.viewBank')}
+                    </Link>
+                  )}
                 </div>
               </motion.div>
               

@@ -409,11 +409,13 @@ function App() {
           
           {/* 受保护路由 */}
           <Route element={<ProtectedRoute />}>
+            <Route path="/exam" element={<Exam />} />
+            <Route path="/results" element={<Results />} />
+          </Route>
+          <Route element={<ProtectedRoute adminOnly />}>
             <Route path="/import" element={<Import />} />
             <Route path="/questions" element={<Questions />} />
             <Route path="/create-question" element={<CreateQuestion />} />
-            <Route path="/exam" element={<Exam />} />
-            <Route path="/results" element={<Results />} />
           </Route>
         </Routes>
       </div>
