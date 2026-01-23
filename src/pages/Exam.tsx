@@ -2,6 +2,7 @@ import React, { useState, useEffect, useContext } from 'react';
 import { QuestionCard } from '@/components/QuestionCard';
 import { ExamTimer } from '@/components/ExamTimer';
 import { Question, ExamSession } from '@/types';
+import { resolveQuestionType, resolveQuestionTypeFromRow } from '@/lib/questionType';
 import { toast } from 'sonner';
 import { useTheme } from '@/hooks/useTheme';
 import { Link, useNavigate } from 'react-router-dom';
@@ -23,17 +24,22 @@ export default function Exam() {
   const [examDuration] = useState(30); // 考试时长（分钟）
   const [examSession, setExamSession] = useState<ExamSession | null>(null);
 
-  const mapQuestionRow = (row: any): Question => ({
-    id: row.id,
-    number: row.number,
-    question: row.question,
-    options: row.options || {},
-    correctAnswer: row.correct_answer || [],
-    explanation: row.explanation || '',
-    isMultipleChoice: row.is_multiple_choice ?? (row.correct_answer?.length > 1),
-    createdAt: row.created_at,
-    createdBy: row.created_by
-  });
+  const mapQuestionRow = (row: any): Question => {
+    const questionType = resolveQuestionTypeFromRow(row);
+    return {
+      id: row.id,
+      number: row.number,
+      question: row.question,
+      options: row.options || {},
+      correctAnswer: row.correct_answer || [],
+      explanation: row.explanation || '',
+      isMultipleChoice: questionType === 'multiple',
+      questionType,
+      subQuestions: row.sub_questions || [],
+      createdAt: row.created_at,
+      createdBy: row.created_by
+    };
+  };
 
   // 从Supabase加载题目
   useEffect(() => {
@@ -101,24 +107,60 @@ export default function Exam() {
   
   // 切换答案选择状态
   const toggleAnswer = (answer: string) => {
-    const questionId = questions[currentQuestionIndex].id;
+    const currentQuestion = questions[currentQuestionIndex];
+    const questionId = currentQuestion.id;
     const currentAnswers = userAnswers[questionId] || [];
+    const questionType = resolveQuestionType(currentQuestion);
     
     setUserAnswers(prev => {
+      if (questionType === 'single') {
+        return {
+          ...prev,
+          [questionId]: [answer]
+        };
+      }
+
       if (currentAnswers.includes(answer)) {
         // 取消选择
         return {
           ...prev,
           [questionId]: currentAnswers.filter(a => a !== answer)
         };
-      } else {
-        // 添加选择
-        return {
-          ...prev,
-          [questionId]: [...currentAnswers, answer]
-        };
       }
+
+      // 多选和顺序题：追加选择（顺序题保持点击顺序）
+      return {
+        ...prev,
+        [questionId]: [...currentAnswers, answer]
+      };
     });
+  };
+
+  const updateMatchingAnswer = (index: number, answer: string) => {
+    const currentQuestion = questions[currentQuestionIndex];
+    const questionId = currentQuestion.id;
+    const requiredCount = currentQuestion.subQuestions?.length ?? 0;
+
+    setUserAnswers(prev => {
+      const existing = prev[questionId] ? [...prev[questionId]] : Array(requiredCount).fill('');
+      while (existing.length < requiredCount) {
+        existing.push('');
+      }
+      existing[index] = answer;
+      return {
+        ...prev,
+        [questionId]: existing
+      };
+    });
+  };
+
+  const clearAnswerOrder = () => {
+    const currentQuestion = questions[currentQuestionIndex];
+    if (!currentQuestion) return;
+    setUserAnswers(prev => ({
+      ...prev,
+      [currentQuestion.id]: []
+    }));
   };
   
   // 下一题
@@ -160,10 +202,13 @@ export default function Exam() {
         };
       }
       
-      // 对于多选题，所有答案都必须正确才算正确
+      const questionType = resolveQuestionType(question);
       const isCorrect = question.correctAnswer.length > 0 && 
-        question.correctAnswer.length === userAnswer.length &&
-        question.correctAnswer.every(answer => userAnswer.includes(answer));
+        question.correctAnswer.length === userAnswer.length && (
+          questionType === 'order' || questionType === 'matching'
+            ? question.correctAnswer.every((answer, index) => userAnswer[index] === answer)
+            : question.correctAnswer.every(answer => userAnswer.includes(answer))
+        );
       
       if (isCorrect) {
         totalScore += 1;
@@ -240,9 +285,34 @@ export default function Exam() {
   // 获取题目状态（已答/未答）
   const getQuestionStatus = (index: number): 'unanswered' | 'answered' | 'current' => {
     if (index === currentQuestionIndex) return 'current';
-    const questionId = questions[index].id;
-    return (userAnswers[questionId] && userAnswers[questionId].length > 0) ? 'answered' : 'unanswered';
+    const question = questions[index];
+    const questionId = question.id;
+    const answers = userAnswers[questionId] || [];
+    const questionType = resolveQuestionType(question);
+
+    if (questionType === 'matching') {
+      const requiredCount = question.subQuestions?.length ?? 0;
+      const hasAllAnswers = requiredCount > 0
+        && answers.length === requiredCount
+        && answers.every(answer => Boolean(answer));
+      return hasAllAnswers ? 'answered' : 'unanswered';
+    }
+
+    return answers.length > 0 ? 'answered' : 'unanswered';
   };
+
+  const currentQuestion = questions[currentQuestionIndex];
+  const currentQuestionType = currentQuestion ? resolveQuestionType(currentQuestion) : 'single';
+  const isOrderQuestion = currentQuestionType === 'order';
+  const isMultipleChoice = currentQuestionType === 'multiple';
+  const isMatchingQuestion = currentQuestionType === 'matching';
+  const currentAnswers = currentQuestion ? (userAnswers[currentQuestion.id] || []) : [];
+  const matchingAnswers = isMatchingQuestion && currentQuestion
+    ? (userAnswers[currentQuestion.id] || Array(currentQuestion.subQuestions?.length ?? 0).fill(''))
+    : [];
+  const answeredCount = questions.reduce((total, _question, index) => (
+    getQuestionStatus(index) === 'answered' ? total + 1 : total
+  ), 0);
   
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-gray-900 text-gray-900 dark:text-gray-100 transition-colors duration-300">
@@ -326,6 +396,14 @@ export default function Exam() {
                     <i className="fa-solid fa-circle-check text-green-500 mt-1 mr-2"></i>
                     <span>{t('exam.rules.multiChoice')}</span>
                   </li>
+                  <li className="flex items-start">
+                    <i className="fa-solid fa-circle-check text-green-500 mt-1 mr-2"></i>
+                    <span>{t('exam.rules.orderChoice')}</span>
+                  </li>
+                  <li className="flex items-start">
+                    <i className="fa-solid fa-circle-check text-green-500 mt-1 mr-2"></i>
+                    <span>{t('exam.rules.matchingChoice')}</span>
+                  </li>
                 </ul>
               </div>
             </div>
@@ -392,53 +470,130 @@ export default function Exam() {
                   </h3>
                   <span className="text-sm text-gray-500 dark:text-gray-400">
                     {t('exam.remainingQuestions', {
-                      count: questions.length - Object.values(userAnswers).filter(answers => answers.length > 0).length
+                      count: questions.length - answeredCount
                     })}
                   </span>
                 </div>
                 
-                {questions[currentQuestionIndex] && (
+                {currentQuestion && (
                   <div className="mb-6">
                     <div className="text-gray-800 dark:text-gray-200 mb-6 whitespace-pre-line">
-                      {questions[currentQuestionIndex].question}
+                      {currentQuestion.question}
                     </div>
                     
                     {/* 显示是否为多选题 */}
-                    {questions[currentQuestionIndex].isMultipleChoice && (
+                    {isMultipleChoice && (
                       <div className="mb-4 p-3 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg">
                         <span className="text-blue-600 dark:text-blue-400 text-sm font-medium">
                           <i className="fa-solid fa-info-circle mr-1"></i> {t('exam.multiChoiceHint')}
                         </span>
                       </div>
                     )}
+
+                    {isOrderQuestion && (
+                      <div className="mb-4 p-3 bg-purple-50 dark:bg-purple-900/20 border border-purple-200 dark:border-purple-800 rounded-lg">
+                        <span className="text-purple-600 dark:text-purple-400 text-sm font-medium">
+                          <i className="fa-solid fa-info-circle mr-1"></i> {t('exam.orderChoiceHint')}
+                        </span>
+                      </div>
+                    )}
+
+                    {isMatchingQuestion && (
+                      <div className="mb-4 p-3 bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 rounded-lg">
+                        <span className="text-amber-700 dark:text-amber-300 text-sm font-medium">
+                          <i className="fa-solid fa-info-circle mr-1"></i> {t('exam.matchingChoiceHint')}
+                        </span>
+                      </div>
+                    )}
                     
-                    <div className="space-y-3 mb-6">
-                      {Object.entries(questions[currentQuestionIndex].options).map(([key, value]) => {
-                        const currentAnswers = userAnswers[questions[currentQuestionIndex].id] || [];
-                        const isSelected = currentAnswers.includes(key);
-                        
-                        return (
-                          <motion.div
-                            key={key}
-                            whileHover={{ scale: 1.01 }}
-                            whileTap={{ scale: 0.99 }}
-                            onClick={() => toggleAnswer(key)}
-                            className={`p-4 rounded-xl border cursor-pointer transition-all ${
-                              isSelected
-                                ? 'border-blue-500 bg-blue-50 dark:bg-blue-900/20'
-                                : 'border-gray-200 dark:border-gray-700 hover:border-blue-300 dark:hover:border-blue-600'
-                            }`}
-                          >
-                            <div className="flex items-start">
-                              <span className={`font-bold mr-3 ${isSelected ? 'text-blue-600 dark:text-blue-400' : ''}`}>
-                                {key}
-                              </span>
-                              <span>{value}</span>
+                    {isMatchingQuestion ? (
+                      <div className="space-y-4 mb-6">
+                        {(currentQuestion.subQuestions || []).map((subQuestion, index) => {
+                          const selected = matchingAnswers[index] ?? '';
+                          const usedKeys = matchingAnswers.filter((answer, answerIndex) => answer && answerIndex !== index);
+                          return (
+                            <div key={`${currentQuestion.id}-match-${index}`} className="p-4 rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800">
+                              <div className="mb-3 text-sm font-medium text-gray-700 dark:text-gray-300">
+                                {t('exam.matchingRequirement', { index: index + 1 })} {subQuestion}
+                              </div>
+                              <select
+                                value={selected}
+                                onChange={(event) => updateMatchingAnswer(index, event.target.value)}
+                                className="w-full px-3 py-2 rounded-lg bg-gray-50 dark:bg-gray-700 border border-gray-200 dark:border-gray-600 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                              >
+                                <option value="">{t('exam.matchingSelectPlaceholder')}</option>
+                                {Object.entries(currentQuestion.options).map(([key, value]) => {
+                                  const isUsed = usedKeys.includes(key);
+                                  return (
+                                    <option key={key} value={key} disabled={isUsed}>
+                                      {key}. {value}
+                                    </option>
+                                  );
+                                })}
+                              </select>
                             </div>
-                          </motion.div>
-                        );
-                      })}
-                    </div>
+                          );
+                        })}
+                        {(currentQuestion.subQuestions || []).length === 0 && (
+                          <div className="text-sm text-red-500 dark:text-red-400">
+                            {t('exam.matchingMissing')}
+                          </div>
+                        )}
+                      </div>
+                    ) : (
+                      <div className="space-y-3 mb-6">
+                        {Object.entries(currentQuestion.options).map(([key, value]) => {
+                          const isSelected = currentAnswers.includes(key);
+                          const orderIndex = isOrderQuestion ? currentAnswers.indexOf(key) : -1;
+                          
+                          return (
+                            <motion.div
+                              key={key}
+                              whileHover={{ scale: 1.01 }}
+                              whileTap={{ scale: 0.99 }}
+                              onClick={() => toggleAnswer(key)}
+                              className={`p-4 rounded-xl border cursor-pointer transition-all ${
+                                isSelected
+                                  ? 'border-blue-500 bg-blue-50 dark:bg-blue-900/20'
+                                  : 'border-gray-200 dark:border-gray-700 hover:border-blue-300 dark:hover:border-blue-600'
+                              }`}
+                            >
+                              <div className="flex items-start justify-between">
+                                <div className="flex items-start">
+                                  <span className={`font-bold mr-3 ${isSelected ? 'text-blue-600 dark:text-blue-400' : ''}`}>
+                                    {key}
+                                  </span>
+                                  <span>{value}</span>
+                                </div>
+                                {isOrderQuestion && orderIndex >= 0 && (
+                                  <span className="ml-3 text-xs font-semibold px-2 py-0.5 rounded-full bg-purple-100 dark:bg-purple-900/40 text-purple-700 dark:text-purple-300">
+                                    {t('exam.orderBadge', { order: orderIndex + 1 })}
+                                  </span>
+                                )}
+                              </div>
+                            </motion.div>
+                          );
+                        })}
+                      </div>
+                    )}
+
+                    {isOrderQuestion && (
+                      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+                        <div className="text-sm text-gray-600 dark:text-gray-400">
+                          {t('exam.selectedOrder', {
+                            order: currentAnswers.length > 0 ? currentAnswers.join(' -> ') : t('exam.noneSelected')
+                          })}
+                        </div>
+                        {currentAnswers.length > 0 && (
+                          <button
+                            onClick={clearAnswerOrder}
+                            className="px-3 py-1.5 text-sm rounded-lg bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors"
+                          >
+                            {t('exam.clearOrder')}
+                          </button>
+                        )}
+                      </div>
+                    )}
                   </div>
                 )}
                 

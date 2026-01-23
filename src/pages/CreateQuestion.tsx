@@ -1,5 +1,5 @@
 import React, { useState, useContext } from 'react';
-import { Question } from '@/types';
+import { Question, QuestionType } from '@/types';
 import { toast } from 'sonner';
 import { useTheme } from '@/hooks/useTheme';
 import { Link } from 'react-router-dom';
@@ -56,6 +56,8 @@ export default function CreateQuestion() {
     C: '',
     D: ''
   });
+  const [questionType, setQuestionType] = useState<QuestionType>('single');
+  const [subQuestions, setSubQuestions] = useState<string[]>([]);
   const [correctAnswers, setCorrectAnswers] = useState<string[]>([]);
   const [explanation, setExplanation] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -98,17 +100,70 @@ export default function CreateQuestion() {
     setOptions(newOptions);
     
     // 从正确答案中移除被删除的选项
-    setCorrectAnswers(prev => prev.filter(answer => answer !== key));
+    setCorrectAnswers(prev => (
+      questionType === 'matching'
+        ? prev.map(answer => (answer === key ? '' : answer))
+        : prev.filter(answer => answer !== key)
+    ));
+  };
+
+  const handleQuestionTypeChange = (type: QuestionType) => {
+    setQuestionType(type);
+    if (type === 'single') {
+      setCorrectAnswers(prev => (prev.length > 0 ? [prev[0]] : []));
+    }
+    if (type === 'matching') {
+      setSubQuestions(prev => (prev.length > 0 ? prev : ['']));
+      setCorrectAnswers(prev => {
+        const requiredCount = subQuestions.length > 0 ? subQuestions.length : 1;
+        return Array(requiredCount).fill('');
+      });
+    }
+  };
+
+  const updateSubQuestion = (index: number, value: string) => {
+    setSubQuestions(prev => {
+      const next = [...prev];
+      next[index] = value;
+      return next;
+    });
+  };
+
+  const addSubQuestion = () => {
+    setSubQuestions(prev => [...prev, '']);
+    setCorrectAnswers(prev => [...prev, '']);
+  };
+
+  const deleteSubQuestion = (index: number) => {
+    if (subQuestions.length <= 1) {
+      toast.error(t('createQuestion.toast.needRequirement'));
+      return;
+    }
+    setSubQuestions(prev => prev.filter((_, idx) => idx !== index));
+    setCorrectAnswers(prev => prev.filter((_, idx) => idx !== index));
+  };
+
+  const updateMatchingCorrectAnswer = (index: number, key: string) => {
+    setCorrectAnswers(prev => {
+      const next = [...prev];
+      next[index] = key;
+      return next;
+    });
   };
   
   // 切换正确答案
   const toggleCorrectAnswer = (key: string) => {
     setCorrectAnswers(prev => {
+      if (questionType === 'single') {
+        return [key];
+      }
+
       if (prev.includes(key)) {
         return prev.filter(answer => answer !== key);
-      } else {
-        return [...prev, key];
       }
+
+      // 多选与顺序题保持选择顺序
+      return [...prev, key];
     });
   };
   
@@ -128,6 +183,37 @@ export default function CreateQuestion() {
     if (correctAnswers.length === 0) {
       toast.error(t('createQuestion.toast.missingCorrect'));
       return false;
+    }
+
+    if (questionType === 'single' && correctAnswers.length !== 1) {
+      toast.error(t('createQuestion.toast.missingCorrect'));
+      return false;
+    }
+
+    if (questionType === 'order' && correctAnswers.length < 2) {
+      toast.error(t('createQuestion.toast.missingOrder'));
+      return false;
+    }
+
+    if (questionType === 'matching') {
+      if (subQuestions.length === 0 || subQuestions.some(item => !item.trim())) {
+        toast.error(t('createQuestion.toast.missingRequirements'));
+        return false;
+      }
+      const availableOptionCount = Object.values(options).filter(option => option.trim() !== '').length;
+      if (subQuestions.length > availableOptionCount) {
+        toast.error(t('createQuestion.toast.matchingOptionLimit'));
+        return false;
+      }
+      if (correctAnswers.length !== subQuestions.length || correctAnswers.some(answer => !answer)) {
+        toast.error(t('createQuestion.toast.missingMatching'));
+        return false;
+      }
+      const usedAnswers = correctAnswers.filter(Boolean);
+      if (new Set(usedAnswers).size !== usedAnswers.length) {
+        toast.error(t('createQuestion.toast.duplicateMatching'));
+        return false;
+      }
     }
     
     // 检查所有正确答案是否都有对应的非空选项
@@ -180,7 +266,11 @@ export default function CreateQuestion() {
         ),
         correctAnswer: correctAnswers,
         explanation: explanation.trim(),
-        isMultipleChoice: correctAnswers.length > 1,
+        isMultipleChoice: questionType === 'multiple',
+        questionType,
+        subQuestions: questionType === 'matching'
+          ? subQuestions.map(item => item.trim())
+          : [],
         createdAt: new Date().toISOString(),
         createdBy: currentUser?.username || 'system'
       };
@@ -194,6 +284,8 @@ export default function CreateQuestion() {
         correct_answer: newQuestion.correctAnswer,
         explanation: newQuestion.explanation,
         is_multiple_choice: newQuestion.isMultipleChoice ?? newQuestion.correctAnswer.length > 1,
+        question_type: newQuestion.questionType,
+        sub_questions: Array.isArray(newQuestion.subQuestions) ? newQuestion.subQuestions : [],
         created_at: newQuestion.createdAt,
         created_by: newQuestion.createdBy,
         is_global: currentUser.isAdmin ? true : false
@@ -229,6 +321,8 @@ export default function CreateQuestion() {
       C: '',
       D: ''
     });
+    setQuestionType('single');
+    setSubQuestions([]);
     setCorrectAnswers([]);
     setExplanation('');
   };
@@ -246,6 +340,16 @@ export default function CreateQuestion() {
       window.location.href = '/questions';
     }, 1000);
   };
+
+  const correctHint = questionType === 'order'
+    ? t('createQuestion.correctHintOrder')
+    : (questionType === 'matching'
+      ? t('createQuestion.correctHintMatching')
+      : (questionType === 'multiple' ? t('createQuestion.correctHintMultiple') : t('createQuestion.correctHintSingle')));
+
+  const selectedAnswersText = questionType === 'order'
+    ? correctAnswers.join(' -> ')
+    : (questionType === 'matching' ? '' : [...correctAnswers].sort().join(', '));
   
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-gray-900 text-gray-900 dark:text-gray-100 transition-colors duration-300">
@@ -311,6 +415,59 @@ export default function CreateQuestion() {
                   required
                 ></textarea>
               </div>
+
+              {/* 题型选择 */}
+              <div className="mb-6">
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-3">
+                  {t('createQuestion.questionTypeLabel')}
+                </label>
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
+                  <button
+                    type="button"
+                    onClick={() => handleQuestionTypeChange('single')}
+                    className={`py-3 rounded-xl font-medium transition-all border ${
+                      questionType === 'single'
+                        ? 'bg-blue-600 text-white border-transparent'
+                        : 'bg-gray-50 dark:bg-gray-700 border border-gray-200 dark:border-gray-600 text-gray-800 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-600'
+                    }`}
+                  >
+                    {t('createQuestion.questionTypeSingle')}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => handleQuestionTypeChange('multiple')}
+                    className={`py-3 rounded-xl font-medium transition-all border ${
+                      questionType === 'multiple'
+                        ? 'bg-blue-600 text-white border-transparent'
+                        : 'bg-gray-50 dark:bg-gray-700 border border-gray-200 dark:border-gray-600 text-gray-800 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-600'
+                    }`}
+                  >
+                    {t('createQuestion.questionTypeMultiple')}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => handleQuestionTypeChange('order')}
+                    className={`py-3 rounded-xl font-medium transition-all border ${
+                      questionType === 'order'
+                        ? 'bg-blue-600 text-white border-transparent'
+                        : 'bg-gray-50 dark:bg-gray-700 border border-gray-200 dark:border-gray-600 text-gray-800 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-600'
+                    }`}
+                  >
+                    {t('createQuestion.questionTypeOrder')}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => handleQuestionTypeChange('matching')}
+                    className={`py-3 rounded-xl font-medium transition-all border ${
+                      questionType === 'matching'
+                        ? 'bg-blue-600 text-white border-transparent'
+                        : 'bg-gray-50 dark:bg-gray-700 border border-gray-200 dark:border-gray-600 text-gray-800 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-600'
+                    }`}
+                  >
+                    {t('createQuestion.questionTypeMatching')}
+                  </button>
+                </div>
+              </div>
               
               {/* 选项 */}
               <div className="mb-6">
@@ -363,33 +520,109 @@ export default function CreateQuestion() {
               <div className="mb-6">
                 <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-3">
                   {t('createQuestion.correctLabel')}{' '}
-                  <span className="text-blue-500 dark:text-blue-400 text-xs">({t('createQuestion.correctHint')})</span>
+                  <span className="text-blue-500 dark:text-blue-400 text-xs">({correctHint})</span>
                 </label>
-                <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3">
-                  {Object.keys(options).map((key) => (
-                    <motion.div
-                      key={key}
-                      whileHover={{ scale: 1.02 }}
-                      whileTap={{ scale: 0.98 }}
+                {questionType === 'matching' ? (
+                  <div className="space-y-4">
+                    {subQuestions.map((subQuestion, index) => {
+                      const usedKeys = correctAnswers.filter((answer, answerIndex) => answer && answerIndex !== index);
+                      return (
+                        <div key={`matching-${index}`} className="p-4 rounded-xl border border-gray-200 dark:border-gray-700">
+                          <div className="flex flex-col sm:flex-row sm:items-center sm:gap-4">
+                            <div className="flex-1">
+                              <label className="block text-xs font-medium text-gray-500 dark:text-gray-400 mb-1">
+                                {t('createQuestion.matchingRequirementLabel', { index: index + 1 })}
+                              </label>
+                              <input
+                                type="text"
+                                value={subQuestion}
+                                onChange={(event) => updateSubQuestion(index, event.target.value)}
+                                placeholder={t('createQuestion.matchingRequirementPlaceholder')}
+                                className="w-full px-4 py-3 rounded-xl bg-gray-50 dark:bg-gray-700 border border-gray-200 dark:border-gray-600 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                              />
+                            </div>
+                            <div className="sm:w-64 mt-3 sm:mt-0">
+                              <label className="block text-xs font-medium text-gray-500 dark:text-gray-400 mb-1">
+                                {t('createQuestion.matchingAnswerLabel')}
+                              </label>
+                              <select
+                                value={correctAnswers[index] || ''}
+                                onChange={(event) => updateMatchingCorrectAnswer(index, event.target.value)}
+                                className="w-full px-3 py-3 rounded-xl bg-gray-50 dark:bg-gray-700 border border-gray-200 dark:border-gray-600 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                              >
+                                <option value="">{t('createQuestion.matchingSelectPlaceholder')}</option>
+                                {Object.entries(options).map(([key, value]) => {
+                                  const isUsed = usedKeys.includes(key);
+                                  const isEmpty = !value.trim();
+                                  return (
+                                    <option key={key} value={key} disabled={isUsed || isEmpty}>
+                                      {key}. {value || t('createQuestion.matchingEmptyOption')}
+                                    </option>
+                                  );
+                                })}
+                              </select>
+                            </div>
+                            <div className="mt-3 sm:mt-0">
+                              <button
+                                type="button"
+                                onClick={() => deleteSubQuestion(index)}
+                                className="p-2 text-gray-500 hover:text-red-500 transition-colors rounded-full hover:bg-gray-100 dark:hover:bg-gray-700"
+                                aria-label={t('createQuestion.matchingDeleteRequirement', { index: index + 1 })}
+                              >
+                                <i className="fa-solid fa-trash"></i>
+                              </button>
+                            </div>
+                          </div>
+                        </div>
+                      );
+                    })}
+                    <button
+                      type="button"
+                      onClick={addSubQuestion}
+                      className="px-3 py-2 bg-blue-100 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 rounded-lg hover:bg-blue-200 dark:hover:bg-blue-900/50 transition-colors text-sm flex items-center"
                     >
-                      <button
-                        type="button"
-                        onClick={() => toggleCorrectAnswer(key)}
-                        className={`w-full py-3 rounded-xl font-medium transition-all ${
-                          correctAnswers.includes(key)
-                            ? 'bg-blue-600 text-white border-transparent'
-                            : 'bg-gray-50 dark:bg-gray-700 border border-gray-200 dark:border-gray-600 text-gray-800 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-600'
-                        }`}
-                      >
-                        {t('createQuestion.correctOption', { key })}
-                      </button>
-                    </motion.div>
-                  ))}
-                </div>
-                {correctAnswers.length > 0 && (
-                  <div className="mt-3 text-sm text-gray-500 dark:text-gray-400">
-                    {t('createQuestion.selected', { answers: correctAnswers.sort().join(', ') })}
+                      <i className="fa-solid fa-plus mr-1"></i> {t('createQuestion.matchingAddRequirement')}
+                    </button>
                   </div>
+                ) : (
+                  <>
+                    <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3">
+                      {Object.keys(options).map((key) => {
+                        const orderIndex = questionType === 'order' ? correctAnswers.indexOf(key) : -1;
+                        return (
+                        <motion.div
+                          key={key}
+                          whileHover={{ scale: 1.02 }}
+                          whileTap={{ scale: 0.98 }}
+                        >
+                          <button
+                            type="button"
+                            onClick={() => toggleCorrectAnswer(key)}
+                            className={`w-full py-3 rounded-xl font-medium transition-all ${
+                              correctAnswers.includes(key)
+                                ? 'bg-blue-600 text-white border-transparent'
+                                : 'bg-gray-50 dark:bg-gray-700 border border-gray-200 dark:border-gray-600 text-gray-800 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-600'
+                            }`}
+                          >
+                            <span className="flex items-center justify-center">
+                              {t('createQuestion.correctOption', { key })}
+                              {questionType === 'order' && orderIndex >= 0 && (
+                                <span className="ml-2 text-xs px-2 py-0.5 rounded-full bg-white/30 text-white">
+                                  #{orderIndex + 1}
+                                </span>
+                              )}
+                            </span>
+                          </button>
+                        </motion.div>
+                      );
+                      })}
+                    </div>
+                    {correctAnswers.length > 0 && (
+                      <div className="mt-3 text-sm text-gray-500 dark:text-gray-400">
+                        {t('createQuestion.selected', { answers: selectedAnswersText })}
+                      </div>
+                    )}
+                  </>
                 )}
               </div>
               

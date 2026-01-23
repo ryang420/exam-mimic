@@ -24,10 +24,18 @@ create table if not exists public.questions (
   correct_answer jsonb not null default '[]'::jsonb,
   explanation text,
   is_multiple_choice boolean,
+  question_type text,
+  sub_questions jsonb not null default '[]'::jsonb,
   created_at timestamptz not null default now(),
   created_by text,
   is_global boolean not null default false
 );
+
+alter table public.questions
+  add column if not exists question_type text;
+
+alter table public.questions
+  add column if not exists sub_questions jsonb not null default '[]'::jsonb;
 
 create index if not exists questions_owner_id_idx on public.questions (owner_id);
 create index if not exists questions_is_global_idx on public.questions (is_global);

@@ -1,4 +1,6 @@
 // 题目类型定义
+export type QuestionType = 'single' | 'multiple' | 'order' | 'matching';
+
 export interface Question {
   id: string;
   number: number;
@@ -7,6 +9,8 @@ export interface Question {
   correctAnswer: string[];
   explanation: string;
   isMultipleChoice?: boolean;
+  questionType?: QuestionType;
+  subQuestions?: string[];
   createdAt?: string;
   createdBy?: string;
 }

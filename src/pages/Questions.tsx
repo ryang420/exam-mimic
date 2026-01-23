@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useContext } from 'react';
 import { QuestionCard } from '@/components/QuestionCard';
 import { Question } from '@/types';
+import { resolveQuestionTypeFromRow } from '@/lib/questionType';
 import { toast } from 'sonner';
 import { useTheme } from '@/hooks/useTheme';
 import { Link } from 'react-router-dom';
@@ -17,17 +18,22 @@ export default function Questions() {
   const [searchTerm, setSearchTerm] = useState('');
   const [filteredQuestions, setFilteredQuestions] = useState<Question[]>([]);
 
-  const mapQuestionRow = (row: any): Question => ({
-    id: row.id,
-    number: row.number,
-    question: row.question,
-    options: row.options || {},
-    correctAnswer: row.correct_answer || [],
-    explanation: row.explanation || '',
-    isMultipleChoice: row.is_multiple_choice ?? (row.correct_answer?.length > 1),
-    createdAt: row.created_at,
-    createdBy: row.created_by
-  });
+  const mapQuestionRow = (row: any): Question => {
+    const questionType = resolveQuestionTypeFromRow(row);
+    return {
+      id: row.id,
+      number: row.number,
+      question: row.question,
+      options: row.options || {},
+      correctAnswer: row.correct_answer || [],
+      explanation: row.explanation || '',
+      isMultipleChoice: questionType === 'multiple',
+      questionType,
+      subQuestions: row.sub_questions || [],
+      createdAt: row.created_at,
+      createdBy: row.created_by
+    };
+  };
   
   // 从Supabase加载题目
   useEffect(() => {

@@ -99,19 +99,27 @@ const migrateLocalStorageData = async (user: User, profile?: ProfileRow | null) 
     try {
       const parsedQuestions = JSON.parse(savedQuestions);
       if (Array.isArray(parsedQuestions) && parsedQuestions.length > 0) {
-        const questionRows = parsedQuestions.map((question: any) => ({
-          id: question.id,
-          owner_id: userId,
-          number: question.number,
-          question: question.question,
-          options: question.options,
-          correct_answer: question.correctAnswer,
-          explanation: question.explanation,
-          is_multiple_choice: question.isMultipleChoice ?? question.correctAnswer?.length > 1,
-          created_at: question.createdAt,
-          created_by: question.createdBy ?? username,
-          is_global: user.isAdmin ? true : false
-        }));
+        const questionRows = parsedQuestions.map((question: any) => {
+          const questionType = question.questionType
+            ?? (Array.isArray(question.subQuestions) && question.subQuestions.length > 0 ? 'matching' : null)
+            ?? (question.isMultipleChoice ? 'multiple' : (question.correctAnswer?.length > 1 ? 'multiple' : 'single'));
+
+          return {
+            id: question.id,
+            owner_id: userId,
+            number: question.number,
+            question: question.question,
+            options: question.options,
+            correct_answer: question.correctAnswer,
+            explanation: question.explanation,
+            is_multiple_choice: questionType === 'multiple',
+            question_type: questionType,
+            sub_questions: Array.isArray(question.subQuestions) ? question.subQuestions : [],
+            created_at: question.createdAt,
+            created_by: question.createdBy ?? username,
+            is_global: user.isAdmin ? true : false
+          };
+        });
 
         await supabase.from('questions').upsert(questionRows, { onConflict: 'id' });
       }
@@ -126,19 +134,27 @@ const migrateLocalStorageData = async (user: User, profile?: ProfileRow | null) 
       try {
         const parsedQuestions = JSON.parse(globalQuestions);
         if (Array.isArray(parsedQuestions) && parsedQuestions.length > 0) {
-          const questionRows = parsedQuestions.map((question: any) => ({
-            id: question.id,
-            owner_id: userId,
-            number: question.number,
-            question: question.question,
-            options: question.options,
-            correct_answer: question.correctAnswer,
-            explanation: question.explanation,
-            is_multiple_choice: question.isMultipleChoice ?? question.correctAnswer?.length > 1,
-            created_at: question.createdAt,
-            created_by: question.createdBy ?? username,
-            is_global: true
-          }));
+          const questionRows = parsedQuestions.map((question: any) => {
+            const questionType = question.questionType
+              ?? (Array.isArray(question.subQuestions) && question.subQuestions.length > 0 ? 'matching' : null)
+              ?? (question.isMultipleChoice ? 'multiple' : (question.correctAnswer?.length > 1 ? 'multiple' : 'single'));
+
+            return {
+              id: question.id,
+              owner_id: userId,
+              number: question.number,
+              question: question.question,
+              options: question.options,
+              correct_answer: question.correctAnswer,
+              explanation: question.explanation,
+              is_multiple_choice: questionType === 'multiple',
+              question_type: questionType,
+              sub_questions: Array.isArray(question.subQuestions) ? question.subQuestions : [],
+              created_at: question.createdAt,
+              created_by: question.createdBy ?? username,
+              is_global: true
+            };
+          });
 
           await supabase.from('questions').upsert(questionRows, { onConflict: 'id' });
         }

@@ -1,6 +1,7 @@
 import React, { useRef, useState } from 'react';
 import { toast } from 'sonner';
 import { Question } from '@/types';
+import { normalizeQuestionType } from '@/lib/questionType';
 import { useTranslation } from 'react-i18next';
 
 interface FileImporterProps {
@@ -78,6 +79,8 @@ export const FileImporter: React.FC<FileImporterProps> = ({ onImport }) => {
       const questionTextIndex = indexMap.get('Question Text');
       const optionsIndex = indexMap.get('Options');
       const correctAnswerIndex = indexMap.get('Correct Answer');
+      const questionTypeIndex = indexMap.get('Question Type');
+      const subQuestionsIndex = indexMap.get('Sub Questions');
       const explanationIndex = indexMap.get('Explanation');
 
       if (
@@ -96,6 +99,8 @@ export const FileImporter: React.FC<FileImporterProps> = ({ onImport }) => {
         const questionText = row[questionTextIndex]?.trim();
         const optionsRaw = row[optionsIndex]?.trim();
         const correctRaw = row[correctAnswerIndex]?.trim();
+        const questionTypeRaw = questionTypeIndex !== undefined ? row[questionTypeIndex]?.trim() : '';
+        const subQuestionsRaw = subQuestionsIndex !== undefined ? row[subQuestionsIndex]?.trim() : '';
         const explanation = row[explanationIndex]?.trim() || '';
 
         if (!questionNumber && !questionText && !optionsRaw && !correctRaw && !explanation) {
@@ -109,21 +114,54 @@ export const FileImporter: React.FC<FileImporterProps> = ({ onImport }) => {
           console.warn(`题目 ${questionNumber || index + 1} 选项解析失败`, error);
         }
 
+        const parseSubQuestions = (raw: string): string[] => {
+          if (!raw) return [];
+          const trimmed = raw.trim();
+          if (trimmed.startsWith('[')) {
+            try {
+              const parsed = JSON.parse(trimmed);
+              if (Array.isArray(parsed)) {
+                return parsed.map((item) => String(item).trim()).filter(Boolean);
+              }
+            } catch (error) {
+              console.warn('Sub Questions JSON 解析失败', error);
+            }
+          }
+          return trimmed
+            .split(/\r?\n|\s*\|\s*/g)
+            .map(item => item.trim())
+            .filter(item => item !== '');
+        };
+
+        const subQuestions = parseSubQuestions(subQuestionsRaw);
+        const normalizedQuestionType = normalizeQuestionType(questionTypeRaw);
+        const hasOrderDelimiter = /->|>/.test(correctRaw || '');
+        const inferredQuestionType = normalizedQuestionType
+          ?? (subQuestions.length > 0 ? 'matching' : null)
+          ?? (hasOrderDelimiter ? 'order' : null);
+
         let correctAnswers: string[] = [];
         if (correctRaw) {
           const normalizedAnswers = correctRaw
             .replace(/\s*(and|&)\s*/gi, ',')
             .replace(/\s+/g, ' ')
             .trim();
+          const splitPattern = inferredQuestionType === 'order' ? /->|>|[,/]+/ : /[,/]+/;
           correctAnswers = normalizedAnswers
-            .split(/[,/]+/)
+            .split(splitPattern)
             .map(ans => ans.trim())
             .filter(ans => ans !== '');
         }
 
+        const questionType = inferredQuestionType
+          ?? (correctAnswers.length > 1 ? 'multiple' : 'single');
+
         const number = Number.parseInt(questionNumber || `${index + 1}`, 10);
 
-        if (questionText && Object.keys(options).length > 0 && correctAnswers.length > 0) {
+        const hasValidMatching = questionType !== 'matching'
+          || (subQuestions.length > 0 && correctAnswers.length === subQuestions.length);
+
+        if (questionText && Object.keys(options).length > 0 && correctAnswers.length > 0 && hasValidMatching) {
           questions.push({
             id: `q-${Date.now()}-${index}`,
             number: Number.isNaN(number) ? index + 1 : number,
@@ -131,7 +169,9 @@ export const FileImporter: React.FC<FileImporterProps> = ({ onImport }) => {
             options,
             correctAnswer: correctAnswers,
             explanation,
-            isMultipleChoice: correctAnswers.length > 1
+            isMultipleChoice: questionType === 'multiple',
+            questionType,
+            subQuestions: questionType === 'matching' ? subQuestions : []
           });
         } else {
           console.warn(`题目 ${questionNumber || index + 1} 缺少必要字段，跳过导入`);
@@ -282,6 +322,10 @@ export const FileImporter: React.FC<FileImporterProps> = ({ onImport }) => {
           <li className="flex items-start">
             <i className="fa-solid fa-check-circle text-green-500 mt-1 mr-2"></i>
             <span>{t('fileImporter.req.correctAnswer')}</span>
+          </li>
+          <li className="flex items-start">
+            <i className="fa-solid fa-check-circle text-green-500 mt-1 mr-2"></i>
+            <span>{t('fileImporter.req.subQuestions')}</span>
           </li>
           <li className="flex items-start">
             <i className="fa-solid fa-check-circle text-green-500 mt-1 mr-2"></i>

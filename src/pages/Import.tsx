@@ -2,6 +2,7 @@ import React, { useState, useContext } from 'react';
 import { FileImporter } from '@/components/FileImporter';
 import { QuestionCard } from '@/components/QuestionCard';
 import { Question } from '@/types';
+import { resolveQuestionTypeFromRow } from '@/lib/questionType';
 import { toast } from 'sonner';
 import { useTheme } from '@/hooks/useTheme';
 import { Link } from 'react-router-dom';
@@ -17,17 +18,22 @@ export default function Import() {
   const [importedQuestions, setImportedQuestions] = useState<Question[]>([]);
   const [showPreview, setShowPreview] = useState(false);
 
-  const mapQuestionRow = (row: any): Question => ({
-    id: row.id,
-    number: row.number,
-    question: row.question,
-    options: row.options || {},
-    correctAnswer: row.correct_answer || [],
-    explanation: row.explanation || '',
-    isMultipleChoice: row.is_multiple_choice ?? (row.correct_answer?.length > 1),
-    createdAt: row.created_at,
-    createdBy: row.created_by
-  });
+  const mapQuestionRow = (row: any): Question => {
+    const questionType = resolveQuestionTypeFromRow(row);
+    return {
+      id: row.id,
+      number: row.number,
+      question: row.question,
+      options: row.options || {},
+      correctAnswer: row.correct_answer || [],
+      explanation: row.explanation || '',
+      isMultipleChoice: questionType === 'multiple',
+      questionType,
+      subQuestions: row.sub_questions || [],
+      createdAt: row.created_at,
+      createdBy: row.created_by
+    };
+  };
   
   // 从Supabase加载已保存的题目
   React.useEffect(() => {
@@ -101,18 +107,26 @@ export default function Import() {
       return;
     }
 
-    const questionRows = newQuestions.map((question) => ({
-      id: question.id,
-      owner_id: currentUser.id,
-      number: question.number,
-      question: question.question,
-      options: question.options,
-      correct_answer: question.correctAnswer,
-      explanation: question.explanation,
-      is_multiple_choice: question.isMultipleChoice ?? question.correctAnswer.length > 1,
-      created_by: currentUser.username,
-      is_global: currentUser.isAdmin ? true : false
-    }));
+    const questionRows = newQuestions.map((question) => {
+      const questionType = question.questionType
+        ?? (Array.isArray(question.subQuestions) && question.subQuestions.length > 0 ? 'matching' : null)
+        ?? (question.isMultipleChoice ? 'multiple' : (question.correctAnswer.length > 1 ? 'multiple' : 'single'));
+
+      return {
+        id: question.id,
+        owner_id: currentUser.id,
+        number: question.number,
+        question: question.question,
+        options: question.options,
+        correct_answer: question.correctAnswer,
+        explanation: question.explanation,
+        is_multiple_choice: questionType === 'multiple',
+        question_type: questionType,
+        sub_questions: Array.isArray(question.subQuestions) ? question.subQuestions : [],
+        created_by: currentUser.username,
+        is_global: currentUser.isAdmin ? true : false
+      };
+    });
 
     const { error } = await supabase.from('questions').insert(questionRows);
     if (error) {

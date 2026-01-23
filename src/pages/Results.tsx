@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useContext } from 'react';
 import { QuestionCard } from '@/components/QuestionCard';
 import { ExamSession, Question } from '@/types';
+import { resolveQuestionTypeFromRow } from '@/lib/questionType';
 import { useTheme } from '@/hooks/useTheme';
 import { Link, useLocation } from 'react-router-dom';
 import { motion } from 'framer-motion';
@@ -19,17 +20,22 @@ export default function Results() {
   const [questions, setQuestions] = useState<Question[]>([]);
   const [showIncorrectOnly, setShowIncorrectOnly] = useState(false);
 
-  const mapQuestionRow = (row: any): Question => ({
-    id: row.id,
-    number: row.number,
-    question: row.question,
-    options: row.options || {},
-    correctAnswer: row.correct_answer || [],
-    explanation: row.explanation || '',
-    isMultipleChoice: row.is_multiple_choice ?? (row.correct_answer?.length > 1),
-    createdAt: row.created_at,
-    createdBy: row.created_by
-  });
+  const mapQuestionRow = (row: any): Question => {
+    const questionType = resolveQuestionTypeFromRow(row);
+    return {
+      id: row.id,
+      number: row.number,
+      question: row.question,
+      options: row.options || {},
+      correctAnswer: row.correct_answer || [],
+      explanation: row.explanation || '',
+      isMultipleChoice: questionType === 'multiple',
+      questionType,
+      subQuestions: row.sub_questions || [],
+      createdAt: row.created_at,
+      createdBy: row.created_by
+    };
+  };
 
   // 从Supabase加载考试结果和题目
   useEffect(() => {
