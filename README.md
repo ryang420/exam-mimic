@@ -1,6 +1,4 @@
-# 
-
-项目名称: AWS认证模拟考试系统
+# 项目名称: AWS认证模拟考试系统
 
 [**项目地址**](https://github.com/ryang420/exam-mimic)
 
