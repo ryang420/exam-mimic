@@ -41,7 +41,7 @@ export default function Register() {
       const success = await register(email, password);
       
       if (success) {
-        toast.success(t('auth.register.toastSuccess'));
+        toast.success(t('auth.register.toastConfirm'));
         navigate('/login');
       } else {
         toast.error(t('auth.register.toastExists'));

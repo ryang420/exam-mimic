@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Routes, Route, useNavigate, Navigate } from 'react-router-dom';
-import { AuthContext, User } from './contexts/authContext';
+import { AuthContext, type LoginResult, User } from './contexts/authContext';
 import { supabase } from './lib/supabase';
 
 // 页面组件
@@ -308,21 +308,25 @@ function App() {
   }, [t, i18n.language]);
   
   // 登录函数
-  const login = async (email: string, password: string): Promise<boolean> => {
+  const login = async (email: string, password: string): Promise<LoginResult> => {
     const { data, error } = await supabase.auth.signInWithPassword({
       email,
       password
     });
 
     if (error || !data.user) {
-      return false;
+      const message = (error?.message ?? '').toLowerCase();
+      const errorCode = (error as { code?: string; error_code?: string } | null)?.code
+        ?? (error as { code?: string; error_code?: string } | null)?.error_code;
+      const isUnconfirmed = errorCode === 'email_not_confirmed' || message.includes('email not confirmed');
+      return isUnconfirmed ? 'unconfirmed' : 'invalid';
     }
 
     // Do not block login on profile hydration to avoid spinner stalls.
     setIsAuthenticated(true);
     setCurrentUser(buildUser(data.user, null));
     void ensureProfile(data.user);
-    return true;
+    return 'success';
   };
   
   // 注册函数

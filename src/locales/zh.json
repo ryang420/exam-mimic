@@ -24,6 +24,7 @@
       "toastMissing": "请输入邮箱和密码",
       "toastSuccess": "登录成功！",
       "toastInvalid": "邮箱或密码错误",
+      "toastUnconfirmed": "请先前往邮箱确认账号",
       "toastFail": "登录失败，请重试"
     },
     "register": {
@@ -42,6 +43,7 @@
       "toastMismatch": "两次输入的密码不一致",
       "toastTooShort": "密码长度至少为6位",
       "toastSuccess": "注册成功！请登录",
+      "toastConfirm": "注册成功！请前往邮箱点击确认链接",
       "toastExists": "邮箱已注册",
       "toastFail": "注册失败，请重试"
     }

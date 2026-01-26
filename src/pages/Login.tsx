@@ -27,15 +27,19 @@ export default function Login() {
     setIsLoading(true);
     
     try {
-      const success = await login(email, password);
+      const result = await login(email, password);
       
-      if (success) {
+      if (result === 'success') {
         toast.success(t('auth.login.toastSuccess'));
         
         // 登录成功后跳转到首页
         navigate('/');
-      } else {
+      } else if (result === 'unconfirmed') {
+        toast.error(t('auth.login.toastUnconfirmed'));
+      } else if (result === 'invalid') {
         toast.error(t('auth.login.toastInvalid'));
+      } else {
+        toast.error(t('auth.login.toastFail'));
       }
     } catch (error) {
       toast.error(t('auth.login.toastFail'));

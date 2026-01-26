@@ -9,6 +9,8 @@ export interface User {
   createdAt: string;
 }
 
+export type LoginResult = 'success' | 'invalid' | 'unconfirmed' | 'error';
+
 // 认证上下文类型定义
 interface AuthContextType {
   isAuthenticated: boolean;
@@ -16,7 +18,7 @@ interface AuthContextType {
   authReady: boolean;
   setIsAuthenticated: (value: boolean) => void;
   setCurrentUser: (user: User | null) => void;
-  login: (email: string, password: string) => Promise<boolean>;
+  login: (email: string, password: string) => Promise<LoginResult>;
   register: (email: string, password: string) => Promise<boolean>;
   logout: () => Promise<void>;
   getAllUsers: () => Promise<User[]>;
@@ -28,7 +30,7 @@ export const AuthContext = createContext<AuthContextType>({
   authReady: false,
   setIsAuthenticated: () => {},
   setCurrentUser: () => {},
-  login: async () => false,
+  login: async () => 'error',
   register: async () => false,
   logout: async () => {},
   getAllUsers: async () => []

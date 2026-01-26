@@ -24,6 +24,7 @@
       "toastMissing": "Please enter email and password",
       "toastSuccess": "Login successful!",
       "toastInvalid": "Invalid email or password",
+      "toastUnconfirmed": "Please confirm your email from the inbox first",
       "toastFail": "Login failed, please try again"
     },
     "register": {
@@ -42,6 +43,7 @@
       "toastMismatch": "Passwords do not match",
       "toastTooShort": "Password must be at least 6 characters",
       "toastSuccess": "Registration successful! Please log in",
+      "toastConfirm": "Registration successful! Check your inbox to confirm your email",
       "toastExists": "Email already registered",
       "toastFail": "Registration failed, please try again"
     }
