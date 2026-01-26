@@ -7,6 +7,7 @@ import { supabase } from './lib/supabase';
 // 页面组件
 import Login from './pages/Login';
 import Register from './pages/Register';
+import AuthCallback from '@/pages/AuthCallback';
 import Home from './pages/Home';
 import Courses from './pages/Courses';
 import Import from './pages/Import';
@@ -327,12 +328,16 @@ function App() {
   // 注册函数
   const register = async (email: string, password: string): Promise<boolean> => {
     const username = email.includes('@') ? email.split('@')[0] : email;
+    const emailRedirectTo = typeof window !== 'undefined'
+      ? `${window.location.origin}/auth/callback`
+      : undefined;
 
     const { data, error } = await supabase.auth.signUp({
       email,
       password,
       options: {
-        data: { username }
+        data: { username },
+        ...(emailRedirectTo ? { emailRedirectTo } : {})
       }
     });
 
@@ -407,6 +412,7 @@ function App() {
           />
           <Route path="/login" element={<Login />} />
           <Route path="/register" element={<Register />} />
+          <Route path="/auth/callback" element={<AuthCallback />} />
           
           {/* 受保护路由 */}
           <Route element={<ProtectedRoute />}>
