@@ -13,6 +13,17 @@ export interface Question {
   subQuestions?: string[];
   createdAt?: string;
   createdBy?: string;
+  courseId?: string;
+}
+
+// 课程类型定义
+export interface Course {
+  id: string;
+  title: string;
+  description?: string;
+  durationMinutes: number;
+  createdAt?: string;
+  createdBy?: string;
 }
 
 // 考试会话类型定义
@@ -28,6 +39,7 @@ export interface ExamSession {
   score: number | null;
   userId?: string;
   username?: string;
+  courseId?: string;
 }
 
 // 全局统计数据类型

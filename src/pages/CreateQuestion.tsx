@@ -1,8 +1,8 @@
-import React, { useState, useContext } from 'react';
-import { Question, QuestionType } from '@/types';
+import React, { useState, useContext, useEffect } from 'react';
+import { Course, Question, QuestionType } from '@/types';
 import { toast } from 'sonner';
 import { useTheme } from '@/hooks/useTheme';
-import { Link } from 'react-router-dom';
+import { Link, useSearchParams } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { AuthContext } from '@/contexts/authContext';
 import { supabase } from '@/lib/supabase';
@@ -49,6 +49,10 @@ export default function CreateQuestion() {
   const { theme, toggleTheme } = useTheme();
   const { currentUser } = useContext(AuthContext);
   const { t } = useTranslation();
+  const [searchParams] = useSearchParams();
+  const [courses, setCourses] = useState<Course[]>([]);
+  const [selectedCourseId, setSelectedCourseId] = useState('');
+  const [isLoadingCourses, setIsLoadingCourses] = useState(true);
   const [question, setQuestion] = useState('');
   const [options, setOptions] = useState<Record<string, string>>({
     A: '',
@@ -61,6 +65,49 @@ export default function CreateQuestion() {
   const [correctAnswers, setCorrectAnswers] = useState<string[]>([]);
   const [explanation, setExplanation] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
+
+  useEffect(() => {
+    const loadCourses = async () => {
+      setIsLoadingCourses(true);
+      const { data, error } = await supabase
+        .from('courses')
+        .select('id, title, description, duration_minutes, created_at, created_by')
+        .order('created_at', { ascending: false });
+
+      if (error) {
+        console.error('加载课程失败:', error);
+        toast.error(t('courses.toastLoadFail'));
+        setIsLoadingCourses(false);
+        return;
+      }
+
+      const mapped = (data ?? []).map((course) => ({
+        id: course.id,
+        title: course.title,
+        description: course.description ?? '',
+        durationMinutes: course.duration_minutes ?? 60,
+        createdAt: course.created_at ?? undefined,
+        createdBy: course.created_by ?? undefined
+      })) as Course[];
+
+      setCourses(mapped);
+      setIsLoadingCourses(false);
+    };
+
+    loadCourses();
+  }, [t]);
+
+  useEffect(() => {
+    if (courses.length === 0) return;
+    const paramCourseId = searchParams.get('courseId');
+    if (paramCourseId && courses.some((course) => course.id === paramCourseId)) {
+      setSelectedCourseId(paramCourseId);
+      return;
+    }
+    if (!selectedCourseId) {
+      setSelectedCourseId(courses[0].id);
+    }
+  }, [courses, searchParams, selectedCourseId]);
   
   // 处理选项变化
   const handleOptionChange = (key: string, value: string) => {
@@ -169,6 +216,11 @@ export default function CreateQuestion() {
   
   // 验证表单
   const validateForm = (): boolean => {
+    if (!selectedCourseId) {
+      toast.error(t('createQuestion.toast.missingCourse'));
+      return false;
+    }
+
     if (!question.trim()) {
       toast.error(t('createQuestion.toast.missingQuestion'));
       return false;
@@ -241,12 +293,18 @@ export default function CreateQuestion() {
         return;
       }
 
+      if (!selectedCourseId) {
+        toast.error(t('createQuestion.toast.missingCourse'));
+        return;
+      }
+
       const numberScopeColumn = currentUser.isAdmin ? 'is_global' : 'owner_id';
       const numberScopeValue = currentUser.isAdmin ? true : currentUser.id;
       const { data: maxRows, error: maxError } = await supabase
         .from('questions')
         .select('number')
         .eq(numberScopeColumn, numberScopeValue)
+        .eq('course_id', selectedCourseId)
         .order('number', { ascending: false })
         .limit(1);
 
@@ -272,7 +330,8 @@ export default function CreateQuestion() {
           ? subQuestions.map(item => item.trim())
           : [],
         createdAt: new Date().toISOString(),
-        createdBy: currentUser?.username || 'system'
+        createdBy: currentUser?.username || 'system',
+        courseId: selectedCourseId
       };
 
       const questionRow = {
@@ -288,7 +347,8 @@ export default function CreateQuestion() {
         sub_questions: Array.isArray(newQuestion.subQuestions) ? newQuestion.subQuestions : [],
         created_at: newQuestion.createdAt,
         created_by: newQuestion.createdBy,
-        is_global: currentUser.isAdmin ? true : false
+        is_global: currentUser.isAdmin ? true : false,
+        course_id: selectedCourseId
       };
 
       const { error } = await supabase.from('questions').insert(questionRow);
@@ -337,7 +397,8 @@ export default function CreateQuestion() {
     saveQuestion();
     // 使用setTimeout确保toast有时间显示
     setTimeout(() => {
-      window.location.href = '/questions';
+      const destination = selectedCourseId ? `/questions?courseId=${selectedCourseId}` : '/questions';
+      window.location.href = destination;
     }, 1000);
   };
 
@@ -350,6 +411,8 @@ export default function CreateQuestion() {
   const selectedAnswersText = questionType === 'order'
     ? correctAnswers.join(' -> ')
     : (questionType === 'matching' ? '' : [...correctAnswers].sort().join(', '));
+
+  const questionBankLink = selectedCourseId ? `/questions?courseId=${selectedCourseId}` : '/questions';
   
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-gray-900 text-gray-900 dark:text-gray-100 transition-colors duration-300">
@@ -386,7 +449,7 @@ export default function CreateQuestion() {
               <p className="text-gray-600 dark:text-gray-400">{t('createQuestion.subtitle')}</p>
             </div>
             <Link
-              to="/questions"
+              to={questionBankLink}
               className="px-4 py-2 bg-gray-200 dark:bg-gray-700 hover:bg-gray-300 dark:hover:bg-gray-600 rounded-lg transition-colors"
             >
               <i className="fa-solid fa-arrow-left mr-1"></i> {t('common.backQuestionBank')}
@@ -401,6 +464,36 @@ export default function CreateQuestion() {
             className="bg-white dark:bg-gray-800 rounded-2xl shadow-lg border border-gray-100 dark:border-gray-700 p-8"
           >
             <form onSubmit={(e) => { e.preventDefault(); saveQuestion(); }}>
+              {/* 课程选择 */}
+              <div className="mb-6">
+                <label htmlFor="course" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                  {t('createQuestion.courseLabel')}
+                </label>
+                {isLoadingCourses ? (
+                  <div className="text-sm text-gray-500 dark:text-gray-400">{t('common.loading')}</div>
+                ) : courses.length === 0 ? (
+                  <div className="text-sm text-red-500 dark:text-red-400">
+                    {t('createQuestion.noCourses')}{' '}
+                    <Link to="/courses" className="underline text-blue-600 dark:text-blue-400">
+                      {t('createQuestion.goCreateCourse')}
+                    </Link>
+                  </div>
+                ) : (
+                  <select
+                    id="course"
+                    value={selectedCourseId}
+                    onChange={(event) => setSelectedCourseId(event.target.value)}
+                    className="w-full px-4 py-3 rounded-xl bg-gray-50 dark:bg-gray-700 border border-gray-200 dark:border-gray-600 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  >
+                    {courses.map((course) => (
+                      <option key={course.id} value={course.id}>
+                        {course.title}
+                      </option>
+                    ))}
+                  </select>
+                )}
+              </div>
+
               {/* 题目内容 */}
               <div className="mb-6">
                 <label htmlFor="question" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">

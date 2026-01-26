@@ -60,8 +60,8 @@
       "importDesc": "Upload a file of questions to quickly add to your bank",
       "myQuestionsTitle": "My Question Bank",
       "myQuestionsDesc": "View and manage all your questions",
-      "startExamTitle": "Start Exam",
-      "startExamDesc": "Take a mock exam to test your knowledge"
+      "startExamTitle": "Browse Courses",
+      "startExamDesc": "Select a course to start a mock exam"
     },
     "adminCard": {
       "title": "Admin Tools",
@@ -96,12 +96,46 @@
     "actions": {
       "import": "Import Question Bank",
       "create": "Create Question",
-      "startExam": "Start Exam"
+      "startExam": "Courses"
     }
+  },
+  "courses": {
+    "title": "Courses",
+    "subtitle": "Select a course to take a mock exam",
+    "manageQuestions": "Manage Questions",
+    "createTitle": "Create Course",
+    "form": {
+      "title": "Course Title",
+      "titlePlaceholder": "Enter a course title",
+      "duration": "Exam Duration (minutes)",
+      "description": "Course Description",
+      "descriptionPlaceholder": "Enter a short course description...",
+      "create": "Create Course",
+      "saving": "Creating..."
+    },
+    "duration": "{{minutes}} minutes",
+    "startExam": "Start Exam",
+    "addQuestion": "Add Question",
+    "emptyTitle": "No courses yet",
+    "emptyAdminDesc": "Create a course first, then add questions.",
+    "emptyUserDesc": "No courses available yet. Please contact an admin.",
+    "emptyAdminHint": "Create your first course using the form above.",
+    "noDescription": "No description provided.",
+    "toastLoadFail": "Failed to load courses",
+    "toastLoginFirst": "Please log in first",
+    "toastMissingTitle": "Please enter a course title",
+    "toastInvalidDuration": "Please enter a valid duration",
+    "toastCreateFail": "Failed to create course, please try again",
+    "toastCreated": "Course created successfully"
   },
   "questions": {
     "title": "My Question Bank",
     "subtitle": "Manage and preview all your questions",
+    "courseLabel": "Course",
+    "noCourses": "No courses available.",
+    "goCreateCourse": "Create Course",
+    "noCoursesTitle": "No courses found",
+    "noCoursesDesc": "Create a course first to organize questions.",
     "listTitle": "Question List",
     "listStats": "Total {{total}} questions, showing {{filtered}}",
     "searchPlaceholder": "Search questions...",
@@ -124,6 +158,9 @@
   "import": {
     "title": "Import Question Bank",
     "subtitle": "Upload a file of questions and we will parse and add them to your bank",
+    "courseLabel": "Course",
+    "noCourses": "No courses available.",
+    "goCreateCourse": "Create Course",
     "importedTitle": "Imported Questions",
     "previewTitle": "Preview",
     "previewMore": "... {{count}} more questions not shown ...",
@@ -146,7 +183,8 @@
       "saveFail": "Failed to save questions, please try again",
       "deleteFail": "Failed to delete question",
       "deleted": "Question deleted",
-      "loginFirst": "Please log in first"
+      "loginFirst": "Please log in first",
+      "courseRequired": "Please select a course first"
     }
   },
   "fileImporter": {
@@ -176,6 +214,9 @@
   "createQuestion": {
     "title": "Create Question",
     "subtitle": "Create a new question and add it to your bank",
+    "courseLabel": "Course",
+    "noCourses": "No courses available.",
+    "goCreateCourse": "Create Course",
     "questionLabel": "Question",
     "questionPlaceholder": "Enter the question...",
     "questionTypeLabel": "Question Type",
@@ -215,6 +256,7 @@
     "toast": {
       "needOption": "At least one option is required",
       "needRequirement": "At least one description is required",
+      "missingCourse": "Please select a course",
       "missingQuestion": "Please enter the question",
       "missingOption": "Please enter at least one option",
       "missingCorrect": "Please select the correct answer",
@@ -231,14 +273,22 @@
   },
   "exam": {
     "durationLabel": "Exam duration (minutes)",
+    "courseLoadFail": "Failed to load course",
+    "courseRequired": "Please select a course first",
     "loadFail": "Failed to load questions",
     "noQuestions": "No available questions. Please import questions first",
     "noQuestionsAdmin": "No available questions. Please import questions first",
     "noQuestionsUser": "No available questions yet. Please contact an admin.",
     "loginFirst": "Please log in first",
     "preStartTitle": "Ready to start the mock exam",
+    "preStartTitleWithCourse": "Ready to start {{course}}",
+    "courseLabel": "Course: {{title}}",
     "preStartDesc": "This exam has {{count}} questions and lasts {{duration}} minutes",
     "goImport": "Go import questions",
+    "loadingCourse": "Loading course...",
+    "noCourseSelected": "Please select a course to start.",
+    "goSelectCourse": "Select Course",
+    "backToCourses": "Back to Courses",
     "rules": {
       "title": "Exam Rules:",
       "timing": "The timer starts when the exam begins and auto-submits when time is up",

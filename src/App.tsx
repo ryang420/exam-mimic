@@ -8,6 +8,7 @@ import { supabase } from './lib/supabase';
 import Login from './pages/Login';
 import Register from './pages/Register';
 import Home from './pages/Home';
+import Courses from './pages/Courses';
 import Import from './pages/Import';
 import Questions from './pages/Questions';
 import CreateQuestion from './pages/CreateQuestion';
@@ -409,6 +410,7 @@ function App() {
           
           {/* 受保护路由 */}
           <Route element={<ProtectedRoute />}>
+            <Route path="/courses" element={<Courses />} />
             <Route path="/exam" element={<Exam />} />
             <Route path="/results" element={<Results />} />
           </Route>

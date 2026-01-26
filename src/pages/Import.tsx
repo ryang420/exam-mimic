@@ -1,11 +1,11 @@
-import React, { useState, useContext } from 'react';
+import React, { useState, useContext, useEffect } from 'react';
 import { FileImporter } from '@/components/FileImporter';
 import { QuestionCard } from '@/components/QuestionCard';
-import { Question } from '@/types';
+import { Course, Question } from '@/types';
 import { resolveQuestionTypeFromRow } from '@/lib/questionType';
 import { toast } from 'sonner';
 import { useTheme } from '@/hooks/useTheme';
-import { Link } from 'react-router-dom';
+import { Link, useSearchParams } from 'react-router-dom';
 import { AuthContext } from '@/contexts/authContext';
 import { supabase } from '@/lib/supabase';
 import { useTranslation } from 'react-i18next';
@@ -15,6 +15,10 @@ export default function Import() {
   const { theme, toggleTheme } = useTheme();
   const { currentUser } = useContext(AuthContext);
   const { t } = useTranslation();
+  const [searchParams] = useSearchParams();
+  const [courses, setCourses] = useState<Course[]>([]);
+  const [selectedCourseId, setSelectedCourseId] = useState('');
+  const [isLoadingCourses, setIsLoadingCourses] = useState(true);
   const [importedQuestions, setImportedQuestions] = useState<Question[]>([]);
   const [showPreview, setShowPreview] = useState(false);
 
@@ -31,19 +35,68 @@ export default function Import() {
       questionType,
       subQuestions: row.sub_questions || [],
       createdAt: row.created_at,
-      createdBy: row.created_by
+      createdBy: row.created_by,
+      courseId: row.course_id ?? undefined
     };
   };
+
+  useEffect(() => {
+    const loadCourses = async () => {
+      setIsLoadingCourses(true);
+      const { data, error } = await supabase
+        .from('courses')
+        .select('id, title, description, duration_minutes, created_at, created_by')
+        .order('created_at', { ascending: false });
+
+      if (error) {
+        console.error('加载课程失败:', error);
+        toast.error(t('courses.toastLoadFail'));
+        setIsLoadingCourses(false);
+        return;
+      }
+
+      const mapped = (data ?? []).map((course) => ({
+        id: course.id,
+        title: course.title,
+        description: course.description ?? '',
+        durationMinutes: course.duration_minutes ?? 60,
+        createdAt: course.created_at ?? undefined,
+        createdBy: course.created_by ?? undefined
+      })) as Course[];
+
+      setCourses(mapped);
+      setIsLoadingCourses(false);
+    };
+
+    loadCourses();
+  }, [t]);
+
+  useEffect(() => {
+    if (courses.length === 0) return;
+    const paramCourseId = searchParams.get('courseId');
+    if (paramCourseId && courses.some((course) => course.id === paramCourseId)) {
+      setSelectedCourseId(paramCourseId);
+      return;
+    }
+    if (!selectedCourseId) {
+      setSelectedCourseId(courses[0].id);
+    }
+  }, [courses, searchParams, selectedCourseId]);
   
   // 从Supabase加载已保存的题目
-  React.useEffect(() => {
-    if (!currentUser?.id) return;
+  useEffect(() => {
+    if (!currentUser?.id || !selectedCourseId) {
+      setImportedQuestions([]);
+      setShowPreview(false);
+      return;
+    }
 
     const loadQuestions = async () => {
       const { data: userQuestions, error } = await supabase
         .from('questions')
         .select('*')
         .eq('owner_id', currentUser.id)
+        .eq('course_id', selectedCourseId)
         .order('number', { ascending: true });
 
       if (error) {
@@ -61,6 +114,7 @@ export default function Import() {
           .from('questions')
           .select('*')
           .eq('is_global', true)
+          .eq('course_id', selectedCourseId)
           .order('number', { ascending: true });
 
         if (globalQuestions) {
@@ -70,12 +124,17 @@ export default function Import() {
     };
 
     loadQuestions();
-  }, [currentUser]);
+  }, [currentUser, selectedCourseId]);
   
   // 处理文件导入
   const handleImport = async (questions: Question[]) => {
     if (questions.length === 0) {
       toast.warning(t('import.toast.empty'));
+      return;
+    }
+
+    if (!selectedCourseId) {
+      toast.error(t('import.toast.courseRequired'));
       return;
     }
     
@@ -124,7 +183,8 @@ export default function Import() {
         question_type: questionType,
         sub_questions: Array.isArray(question.subQuestions) ? question.subQuestions : [],
         created_by: currentUser.username,
-        is_global: currentUser.isAdmin ? true : false
+        is_global: currentUser.isAdmin ? true : false,
+        course_id: selectedCourseId
       };
     });
 
@@ -143,12 +203,21 @@ export default function Import() {
   const handleClearAll = () => {
     if (window.confirm(t('questions.confirmDeleteAll'))) {
       if (!currentUser?.id) return;
+      if (!selectedCourseId) return;
 
       const clearQuestions = async () => {
-        await supabase.from('questions').delete().eq('owner_id', currentUser.id);
+        await supabase
+          .from('questions')
+          .delete()
+          .eq('owner_id', currentUser.id)
+          .eq('course_id', selectedCourseId);
 
         if (currentUser.isAdmin) {
-          await supabase.from('questions').delete().eq('is_global', true);
+          await supabase
+            .from('questions')
+            .delete()
+            .eq('is_global', true)
+            .eq('course_id', selectedCourseId);
         }
 
         setImportedQuestions([]);
@@ -213,6 +282,36 @@ export default function Import() {
               <i className="fa-solid fa-arrow-left mr-1"></i> {t('common.backHome')}
             </Link>
           </div>
+
+          {/* 课程选择 */}
+          <div className="mb-8">
+            <label htmlFor="course" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+              {t('import.courseLabel')}
+            </label>
+            {isLoadingCourses ? (
+              <div className="text-sm text-gray-500 dark:text-gray-400">{t('common.loading')}</div>
+            ) : courses.length === 0 ? (
+              <div className="text-sm text-red-500 dark:text-red-400">
+                {t('import.noCourses')}{' '}
+                <Link to="/courses" className="underline text-blue-600 dark:text-blue-400">
+                  {t('import.goCreateCourse')}
+                </Link>
+              </div>
+            ) : (
+              <select
+                id="course"
+                value={selectedCourseId}
+                onChange={(event) => setSelectedCourseId(event.target.value)}
+                className="w-full px-4 py-3 rounded-xl bg-gray-50 dark:bg-gray-700 border border-gray-200 dark:border-gray-600 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              >
+                {courses.map((course) => (
+                  <option key={course.id} value={course.id}>
+                    {course.title}
+                  </option>
+                ))}
+              </select>
+            )}
+          </div>
           
           {/* 文件导入区域 */}
           <div className="mb-12">
@@ -246,13 +345,13 @@ export default function Import() {
                     )}
                   </button>
                   <Link
-                    to="/create-question"
+                    to={selectedCourseId ? `/create-question?courseId=${selectedCourseId}` : '/create-question'}
                     className="px-4 py-2 bg-purple-100 dark:bg-purple-900/30 text-purple-600 dark:text-purple-400 rounded-lg hover:bg-purple-200 dark:hover:bg-purple-900/50 transition-colors"
                   >
                     <i className="fa-solid fa-plus mr-1"></i> {t('import.buttons.create')}
                   </Link>
                   <Link
-                    to="/exam"
+                    to={selectedCourseId ? `/exam?courseId=${selectedCourseId}` : '/courses'}
                     className="px-4 py-2 bg-green-100 dark:bg-green-900/30 text-green-600 dark:text-green-400 rounded-lg hover:bg-green-200 dark:hover:bg-green-900/50 transition-colors"
                   >
                     <i className="fa-solid fa-pen-to-square mr-1"></i> {t('import.buttons.startExam')}

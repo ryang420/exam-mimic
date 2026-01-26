@@ -292,7 +292,7 @@ export default function Home() {
                   </>
                 )}
                 <Link
-                  to="/exam"
+                  to="/courses"
                   className="px-4 py-2 bg-green-100 dark:bg-green-900/30 text-green-600 dark:text-green-400 rounded-lg hover:bg-green-200 dark:hover:bg-green-900/50 transition-colors"
                 >
                   <i className="fa-solid fa-pen-to-square mr-1"></i> {t('home.actions.startExam')}
@@ -583,7 +583,7 @@ export default function Home() {
             )}
 
             <Link
-              to="/exam"
+              to="/courses"
               className="block bg-gradient-to-br from-green-50 to-green-100 dark:from-green-900/20 dark:to-green-800/20 rounded-2xl shadow-md border border-green-200 dark:border-green-800 p-6 hover:shadow-lg transition-shadow"
             >
               <div className="text-3xl text-green-600 dark:text-green-400 mb-4">

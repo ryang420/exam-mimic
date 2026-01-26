@@ -7,6 +7,11 @@ drop policy if exists "profiles_select_all_admin" on public.profiles;
 drop policy if exists "profiles_insert_own" on public.profiles;
 drop policy if exists "profiles_update_own" on public.profiles;
 
+drop policy if exists "courses_select_all" on public.courses;
+drop policy if exists "courses_insert_admin" on public.courses;
+drop policy if exists "courses_update_admin" on public.courses;
+drop policy if exists "courses_delete_admin" on public.courses;
+
 drop policy if exists "questions_select_own_or_global" on public.questions;
 drop policy if exists "questions_insert_own" on public.questions;
 drop policy if exists "questions_update_own" on public.questions;
@@ -30,4 +35,5 @@ drop function if exists public.is_admin();
 drop table if exists public.exam_answers;
 drop table if exists public.exam_sessions;
 drop table if exists public.questions;
+drop table if exists public.courses;
 drop table if exists public.profiles;

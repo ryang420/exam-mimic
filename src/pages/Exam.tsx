@@ -1,11 +1,10 @@
-import React, { useState, useEffect, useContext } from 'react';
-import { QuestionCard } from '@/components/QuestionCard';
+import { useState, useEffect, useContext } from 'react';
 import { ExamTimer } from '@/components/ExamTimer';
-import { Question, ExamSession } from '@/types';
+import { Course, ExamSession, Question } from '@/types';
 import { resolveQuestionType, resolveQuestionTypeFromRow } from '@/lib/questionType';
 import { toast } from 'sonner';
 import { useTheme } from '@/hooks/useTheme';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { AuthContext } from '@/contexts/authContext';
 import { supabase } from '@/lib/supabase';
@@ -17,11 +16,15 @@ export default function Exam() {
   const { currentUser } = useContext(AuthContext);
   const navigate = useNavigate();
   const { t } = useTranslation();
+  const [searchParams] = useSearchParams();
+  const courseId = searchParams.get('courseId');
+  const [course, setCourse] = useState<Course | null>(null);
+  const [isLoadingCourse, setIsLoadingCourse] = useState(true);
   const [questions, setQuestions] = useState<Question[]>([]);
   const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0);
   const [userAnswers, setUserAnswers] = useState<Record<string, string[]>>({});
   const [isExamStarted, setIsExamStarted] = useState(false);
-  const [examDuration] = useState(30); // 考试时长（分钟）
+  const [examDuration, setExamDuration] = useState(180);
   const [examSession, setExamSession] = useState<ExamSession | null>(null);
 
   const mapQuestionRow = (row: any): Question => {
@@ -37,35 +40,69 @@ export default function Exam() {
       questionType,
       subQuestions: row.sub_questions || [],
       createdAt: row.created_at,
-      createdBy: row.created_by
+      createdBy: row.created_by,
+      courseId: row.course_id ?? undefined
     };
   };
 
+  useEffect(() => {
+    const loadCourse = async () => {
+      if (!courseId) {
+        setCourse(null);
+        setIsLoadingCourse(false);
+        return;
+      }
+
+      setIsLoadingCourse(true);
+      const { data, error } = await supabase
+        .from('courses')
+        .select('id, title, description, duration_minutes, created_at, created_by')
+        .eq('id', courseId)
+        .maybeSingle();
+
+      if (error || !data) {
+        console.error('加载课程失败:', error);
+        toast.error(t('exam.courseLoadFail'));
+        setCourse(null);
+        setIsLoadingCourse(false);
+        return;
+      }
+
+      const mappedCourse: Course = {
+        id: data.id,
+        title: data.title,
+        description: data.description ?? '',
+        durationMinutes: data.duration_minutes ?? 60,
+        createdAt: data.created_at ?? undefined,
+        createdBy: data.created_by ?? undefined
+      };
+
+      setCourse(mappedCourse);
+      setExamDuration(mappedCourse.durationMinutes);
+      setIsLoadingCourse(false);
+    };
+
+    loadCourse();
+  }, [courseId, t]);
+
   // 从Supabase加载题目
   useEffect(() => {
-    if (!currentUser?.id) return;
+    if (!currentUser?.id || !courseId) {
+      setQuestions([]);
+      return;
+    }
 
     const loadQuestions = async () => {
-      const { data: userQuestions, error } = await supabase
+      const { data: questionRows, error } = await supabase
         .from('questions')
         .select('*')
-        .eq('owner_id', currentUser.id)
+        .eq('course_id', courseId)
         .order('number', { ascending: true });
 
       if (error) {
         console.error('加载题目失败:', error);
         toast.error(t('exam.loadFail'));
         return;
-      }
-
-      let questionRows = userQuestions ?? [];
-      if (questionRows.length === 0) {
-        const { data: globalQuestions } = await supabase
-          .from('questions')
-          .select('*')
-          .eq('is_global', true)
-          .order('number', { ascending: true });
-        questionRows = globalQuestions ?? [];
       }
 
       if (questionRows.length > 0) {
@@ -78,10 +115,15 @@ export default function Exam() {
     };
 
     loadQuestions();
-  }, [currentUser]);
+  }, [currentUser, courseId]);
   
   // 开始考试
   const startExam = () => {
+    if (!courseId) {
+      toast.error(t('exam.courseRequired'));
+      return;
+    }
+
     if (questions.length === 0) {
       toast.error(t('exam.noQuestions'));
       return;
@@ -96,7 +138,8 @@ export default function Exam() {
         userAnswer: null,
         isCorrect: null
       })),
-      score: null
+      score: null,
+      courseId: courseId ?? undefined
     };
     
     setExamSession(newSession);
@@ -228,7 +271,8 @@ export default function Exam() {
       ...examSession,
       endTime: new Date(),
       score,
-      questions: updatedQuestions
+      questions: updatedQuestions,
+      courseId: courseId ?? undefined
     };
     
     if (!currentUser?.id) {
@@ -241,7 +285,8 @@ export default function Exam() {
       user_id: currentUser.id,
       score,
       started_at: new Date(updatedSession.startTime).toISOString(),
-      ended_at: updatedSession.endTime ? new Date(updatedSession.endTime).toISOString() : null
+      ended_at: updatedSession.endTime ? new Date(updatedSession.endTime).toISOString() : null,
+      course_id: courseId ?? null
     };
 
     const { error: sessionError } = await supabase
@@ -273,7 +318,7 @@ export default function Exam() {
       return;
     }
 
-    navigate('/results', { state: { sessionId: updatedSession.id } });
+    navigate('/results', { state: { sessionId: updatedSession.id, courseId: courseId ?? null } });
   };
   
   // 时间到处理
@@ -313,6 +358,7 @@ export default function Exam() {
   const answeredCount = questions.reduce((total, _question, index) => (
     getQuestionStatus(index) === 'answered' ? total + 1 : total
   ), 0);
+  const isCourseReady = Boolean(courseId && course);
   
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-gray-900 text-gray-900 dark:text-gray-100 transition-colors duration-300">
@@ -349,19 +395,46 @@ export default function Exam() {
               <div className="text-6xl text-blue-500 mb-6">
                 <i className="fa-solid fa-file-lines"></i>
               </div>
-              <h2 className="text-3xl font-bold mb-4">{t('exam.preStartTitle')}</h2>
-              <p className="text-gray-600 dark:text-gray-400 mb-8">
+              <h2 className="text-3xl font-bold mb-4">
+                {course ? t('exam.preStartTitleWithCourse', { course: course.title }) : t('exam.preStartTitle')}
+              </h2>
+              {course && (
+                <p className="text-sm text-gray-500 dark:text-gray-400 mb-3">
+                  {t('exam.courseLabel', { title: course.title })}
+                </p>
+              )}
+              <p className="text-gray-600 dark:text-gray-400 mb-6">
                 {t('exam.preStartDesc', { count: questions.length, duration: examDuration })}
               </p>
-              
-              {questions.length === 0 ? (
+              {course?.description && (
+                <p className="text-gray-500 dark:text-gray-400 mb-8 whitespace-pre-line">
+                  {course.description}
+                </p>
+              )}
+
+              {isLoadingCourse ? (
+                <div className="mb-8 text-gray-500 dark:text-gray-400">{t('exam.loadingCourse')}</div>
+              ) : !isCourseReady ? (
+                <div className="mb-8">
+                  <p className="text-red-500 dark:text-red-400 mb-4">
+                    {t('exam.noCourseSelected')}
+                  </p>
+                  <Link
+                    to="/courses"
+                    className="inline-flex items-center px-6 py-3 bg-blue-600 hover:bg-blue-700 text-white font-medium rounded-lg transition-colors"
+                  >
+                    <i className="fa-solid fa-list mr-2"></i>
+                    {t('exam.goSelectCourse')}
+                  </Link>
+                </div>
+              ) : questions.length === 0 ? (
                 <div className="mb-8">
                   <p className="text-red-500 dark:text-red-400 mb-4">
                     {currentUser?.isAdmin ? t('exam.noQuestionsAdmin') : t('exam.noQuestionsUser')}
                   </p>
                   {currentUser?.isAdmin ? (
                     <Link
-                      to="/import"
+                      to={courseId ? `/import?courseId=${courseId}` : '/import'}
                       className="inline-flex items-center px-6 py-3 bg-blue-600 hover:bg-blue-700 text-white font-medium rounded-lg transition-colors"
                     >
                       <i className="fa-solid fa-file-import mr-2"></i>
@@ -369,11 +442,11 @@ export default function Exam() {
                     </Link>
                   ) : (
                     <Link
-                      to="/"
+                      to="/courses"
                       className="inline-flex items-center px-6 py-3 bg-gray-200 dark:bg-gray-700 hover:bg-gray-300 dark:hover:bg-gray-600 text-gray-800 dark:text-gray-200 font-medium rounded-lg transition-colors"
                     >
                       <i className="fa-solid fa-arrow-left mr-2"></i>
-                      {t('common.backHome')}
+                      {t('exam.backToCourses')}
                     </Link>
                   )}
                 </div>

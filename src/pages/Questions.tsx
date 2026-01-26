@@ -1,10 +1,10 @@
 import React, { useState, useEffect, useContext } from 'react';
 import { QuestionCard } from '@/components/QuestionCard';
-import { Question } from '@/types';
+import { Course, Question } from '@/types';
 import { resolveQuestionTypeFromRow } from '@/lib/questionType';
 import { toast } from 'sonner';
 import { useTheme } from '@/hooks/useTheme';
-import { Link } from 'react-router-dom';
+import { Link, useSearchParams } from 'react-router-dom';
 import { AuthContext } from '@/contexts/authContext';
 import { supabase } from '@/lib/supabase';
 import { useTranslation } from 'react-i18next';
@@ -14,6 +14,10 @@ export default function Questions() {
   const { theme, toggleTheme } = useTheme();
   const { currentUser } = useContext(AuthContext);
   const { t } = useTranslation();
+  const [searchParams] = useSearchParams();
+  const [courses, setCourses] = useState<Course[]>([]);
+  const [selectedCourseId, setSelectedCourseId] = useState('');
+  const [isLoadingCourses, setIsLoadingCourses] = useState(true);
   const [questions, setQuestions] = useState<Question[]>([]);
   const [searchTerm, setSearchTerm] = useState('');
   const [filteredQuestions, setFilteredQuestions] = useState<Question[]>([]);
@@ -31,19 +35,68 @@ export default function Questions() {
       questionType,
       subQuestions: row.sub_questions || [],
       createdAt: row.created_at,
-      createdBy: row.created_by
+      createdBy: row.created_by,
+      courseId: row.course_id ?? undefined
     };
   };
+
+  useEffect(() => {
+    const loadCourses = async () => {
+      setIsLoadingCourses(true);
+      const { data, error } = await supabase
+        .from('courses')
+        .select('id, title, description, duration_minutes, created_at, created_by')
+        .order('created_at', { ascending: false });
+
+      if (error) {
+        console.error('加载课程失败:', error);
+        toast.error(t('courses.toastLoadFail'));
+        setIsLoadingCourses(false);
+        return;
+      }
+
+      const mapped = (data ?? []).map((course) => ({
+        id: course.id,
+        title: course.title,
+        description: course.description ?? '',
+        durationMinutes: course.duration_minutes ?? 60,
+        createdAt: course.created_at ?? undefined,
+        createdBy: course.created_by ?? undefined
+      })) as Course[];
+
+      setCourses(mapped);
+      setIsLoadingCourses(false);
+    };
+
+    loadCourses();
+  }, [t]);
+
+  useEffect(() => {
+    if (courses.length === 0) return;
+    const paramCourseId = searchParams.get('courseId');
+    if (paramCourseId && courses.some((course) => course.id === paramCourseId)) {
+      setSelectedCourseId(paramCourseId);
+      return;
+    }
+    if (!selectedCourseId) {
+      setSelectedCourseId(courses[0].id);
+    }
+  }, [courses, searchParams, selectedCourseId]);
   
   // 从Supabase加载题目
   useEffect(() => {
-    if (!currentUser?.id) return;
+    if (!currentUser?.id || !selectedCourseId) {
+      setQuestions([]);
+      setFilteredQuestions([]);
+      return;
+    }
 
     const loadQuestions = async () => {
       const { data: userQuestions, error } = await supabase
         .from('questions')
         .select('*')
         .eq('owner_id', currentUser.id)
+        .eq('course_id', selectedCourseId)
         .order('number', { ascending: true });
 
       if (error) {
@@ -63,6 +116,7 @@ export default function Questions() {
         .from('questions')
         .select('*')
         .eq('is_global', true)
+        .eq('course_id', selectedCourseId)
         .order('number', { ascending: true });
 
       if (globalQuestions) {
@@ -73,7 +127,7 @@ export default function Questions() {
     };
 
     loadQuestions();
-  }, [currentUser]);
+  }, [currentUser, selectedCourseId]);
   
   // 过滤题目
   useEffect(() => {
@@ -120,11 +174,20 @@ export default function Questions() {
     if (window.confirm(t('questions.confirmDeleteAll'))) {
       const clearQuestions = async () => {
         if (!currentUser?.id) return;
+        if (!selectedCourseId) return;
 
-        await supabase.from('questions').delete().eq('owner_id', currentUser.id);
+        await supabase
+          .from('questions')
+          .delete()
+          .eq('owner_id', currentUser.id)
+          .eq('course_id', selectedCourseId);
 
         if (currentUser.isAdmin) {
-          await supabase.from('questions').delete().eq('is_global', true);
+          await supabase
+            .from('questions')
+            .delete()
+            .eq('is_global', true)
+            .eq('course_id', selectedCourseId);
         }
 
         setQuestions([]);
@@ -172,20 +235,20 @@ export default function Questions() {
             </div>
               <div className="mt-4 md:mt-0 flex flex-wrap gap-3">
                 <Link
-                  to="/import"
+                  to={selectedCourseId ? `/import?courseId=${selectedCourseId}` : '/import'}
                   className="px-4 py-2 bg-blue-100 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 rounded-lg hover:bg-blue-200 dark:hover:bg-blue-900/50 transition-colors"
                 >
                   <i className="fa-solid fa-file-import mr-1"></i> {t('questions.importButton')}
                 </Link>
                 <Link
-                  to="/create-question"
+                  to={selectedCourseId ? `/create-question?courseId=${selectedCourseId}` : '/create-question'}
                   className="px-4 py-2 bg-purple-100 dark:bg-purple-900/30 text-purple-600 dark:text-purple-400 rounded-lg hover:bg-purple-200 dark:hover:bg-purple-900/50 transition-colors"
                 >
                   <i className="fa-solid fa-plus mr-1"></i> {t('questions.createButton')}
                 </Link>
                 {questions.length > 0 && (
                   <Link
-                    to="/exam"
+                    to={selectedCourseId ? `/exam?courseId=${selectedCourseId}` : '/courses'}
                     className="px-4 py-2 bg-green-100 dark:bg-green-900/30 text-green-600 dark:text-green-400 rounded-lg hover:bg-green-200 dark:hover:bg-green-900/50 transition-colors"
                   >
                     <i className="fa-solid fa-pen-to-square mr-1"></i> {t('questions.startExamButton')}
@@ -198,6 +261,36 @@ export default function Questions() {
                   <i className="fa-solid fa-arrow-left mr-1"></i> {t('common.backHome')}
                 </Link>
               </div>
+          </div>
+
+          {/* 课程选择 */}
+          <div className="mb-8">
+            <label htmlFor="course" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+              {t('questions.courseLabel')}
+            </label>
+            {isLoadingCourses ? (
+              <div className="text-sm text-gray-500 dark:text-gray-400">{t('common.loading')}</div>
+            ) : courses.length === 0 ? (
+              <div className="text-sm text-red-500 dark:text-red-400">
+                {t('questions.noCourses')}{' '}
+                <Link to="/courses" className="underline text-blue-600 dark:text-blue-400">
+                  {t('questions.goCreateCourse')}
+                </Link>
+              </div>
+            ) : (
+              <select
+                id="course"
+                value={selectedCourseId}
+                onChange={(event) => setSelectedCourseId(event.target.value)}
+                className="w-full px-4 py-3 rounded-xl bg-gray-50 dark:bg-gray-700 border border-gray-200 dark:border-gray-600 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              >
+                {courses.map((course) => (
+                  <option key={course.id} value={course.id}>
+                    {course.title}
+                  </option>
+                ))}
+              </select>
+            )}
           </div>
           
           {/* 搜索和统计区域 */}
@@ -233,7 +326,24 @@ export default function Questions() {
           )}
           
           {/* 题目列表 */}
-          {filteredQuestions.length > 0 ? (
+          {courses.length === 0 ? (
+            <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-md border border-gray-100 dark:border-gray-700 p-12 text-center">
+              <div className="text-6xl text-gray-300 dark:text-gray-600 mb-4">
+                <i className="fa-solid fa-book-open"></i>
+              </div>
+              <h3 className="text-xl font-bold mb-2">{t('questions.noCoursesTitle')}</h3>
+              <p className="text-gray-600 dark:text-gray-400 mb-6">
+                {t('questions.noCoursesDesc')}
+              </p>
+              <Link
+                to="/courses"
+                className="inline-flex items-center px-6 py-3 bg-blue-600 hover:bg-blue-700 text-white font-medium rounded-lg transition-colors"
+              >
+                <i className="fa-solid fa-plus mr-2"></i>
+                {t('questions.goCreateCourse')}
+              </Link>
+            </div>
+          ) : filteredQuestions.length > 0 ? (
             <div className="space-y-6">
               {filteredQuestions.map(question => (
                 <QuestionCard
@@ -255,7 +365,7 @@ export default function Questions() {
                 {t('questions.noQuestionsDesc')}
               </p>
               <Link
-                to="/import"
+                to={selectedCourseId ? `/import?courseId=${selectedCourseId}` : '/import'}
                 className="inline-flex items-center px-6 py-3 bg-blue-600 hover:bg-blue-700 text-white font-medium rounded-lg transition-colors"
               >
                 <i className="fa-solid fa-file-import mr-2"></i>

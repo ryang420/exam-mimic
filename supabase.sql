@@ -14,6 +14,18 @@ create table if not exists public.profiles (
   created_at timestamptz not null default now()
 );
 
+-- Courses
+create table if not exists public.courses (
+  id text primary key,
+  title text not null,
+  description text,
+  duration_minutes integer not null default 60,
+  created_at timestamptz not null default now(),
+  created_by uuid references auth.users(id) on delete set null
+);
+
+create index if not exists courses_created_by_idx on public.courses (created_by);
+
 -- Questions
 create table if not exists public.questions (
   id text primary key,
@@ -26,6 +38,7 @@ create table if not exists public.questions (
   is_multiple_choice boolean,
   question_type text,
   sub_questions jsonb not null default '[]'::jsonb,
+  course_id text references public.courses(id) on delete cascade,
   created_at timestamptz not null default now(),
   created_by text,
   is_global boolean not null default false
@@ -37,9 +50,13 @@ alter table public.questions
 alter table public.questions
   add column if not exists sub_questions jsonb not null default '[]'::jsonb;
 
+alter table public.questions
+  add column if not exists course_id text references public.courses(id) on delete cascade;
+
 create index if not exists questions_owner_id_idx on public.questions (owner_id);
 create index if not exists questions_is_global_idx on public.questions (is_global);
 create index if not exists questions_number_idx on public.questions (number);
+create index if not exists questions_course_id_idx on public.questions (course_id);
 
 -- Exam sessions
 create table if not exists public.exam_sessions (
@@ -48,11 +65,13 @@ create table if not exists public.exam_sessions (
   score integer,
   started_at timestamptz,
   ended_at timestamptz,
+  course_id text references public.courses(id) on delete set null,
   created_at timestamptz not null default now()
 );
 
 create index if not exists exam_sessions_user_id_idx on public.exam_sessions (user_id);
 create index if not exists exam_sessions_created_at_idx on public.exam_sessions (created_at);
+create index if not exists exam_sessions_course_id_idx on public.exam_sessions (course_id);
 
 -- Exam answers
 create table if not exists public.exam_answers (
@@ -97,6 +116,7 @@ $$;
 
 -- RLS
 alter table public.profiles enable row level security;
+alter table public.courses enable row level security;
 alter table public.questions enable row level security;
 alter table public.exam_sessions enable row level security;
 alter table public.exam_answers enable row level security;
@@ -117,6 +137,23 @@ create policy "profiles_insert_own"
 create policy "profiles_update_own"
   on public.profiles for update
   using (auth.uid() = id);
+
+-- Courses policies
+create policy "courses_select_all"
+  on public.courses for select
+  using (true);
+
+create policy "courses_insert_admin"
+  on public.courses for insert
+  with check (public.is_admin());
+
+create policy "courses_update_admin"
+  on public.courses for update
+  using (public.is_admin());
+
+create policy "courses_delete_admin"
+  on public.courses for delete
+  using (public.is_admin());
 
 -- Questions policies
 create policy "questions_select_own_or_global"

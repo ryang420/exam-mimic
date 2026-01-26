@@ -19,6 +19,8 @@ export default function Results() {
   const [examResult, setExamResult] = useState<ExamSession | null>(null);
   const [questions, setQuestions] = useState<Question[]>([]);
   const [showIncorrectOnly, setShowIncorrectOnly] = useState(false);
+  const retakeCourseId = (location.state as { courseId?: string } | null)?.courseId;
+  const retakeLink = retakeCourseId ? `/exam?courseId=${retakeCourseId}` : '/courses';
 
   const mapQuestionRow = (row: any): Question => {
     const questionType = resolveQuestionTypeFromRow(row);
@@ -276,7 +278,7 @@ export default function Results() {
                 
                 <div className="mt-8 flex justify-center space-x-4">
                   <Link
-                    to="/exam"
+                    to={retakeLink}
                     className="px-6 py-3 bg-blue-600 hover:bg-blue-700 text-white font-medium rounded-lg transition-colors"
                   >
                     <i className="fa-solid fa-repeat mr-2"></i>

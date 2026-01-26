@@ -60,8 +60,8 @@
       "importDesc": "上传包含考题的文本文件，快速添加题目到您的题库",
       "myQuestionsTitle": "我的题库",
       "myQuestionsDesc": "查看和管理您的所有题目，进行编辑或删除操作",
-      "startExamTitle": "开始考试",
-      "startExamDesc": "进行模拟考试，测试您的知识掌握程度"
+      "startExamTitle": "课程列表",
+      "startExamDesc": "选择课程后开始模拟考试"
     },
     "adminCard": {
       "title": "管理员功能",
@@ -96,12 +96,46 @@
     "actions": {
       "import": "导入题库",
       "create": "创建题目",
-      "startExam": "开始考试"
+      "startExam": "课程列表"
     }
+  },
+  "courses": {
+    "title": "课程列表",
+    "subtitle": "选择课程后开始模拟考试",
+    "manageQuestions": "管理题库",
+    "createTitle": "创建课程",
+    "form": {
+      "title": "课程名称",
+      "titlePlaceholder": "请输入课程名称",
+      "duration": "考试时长（分钟）",
+      "description": "课程描述",
+      "descriptionPlaceholder": "请输入课程简介...",
+      "create": "创建课程",
+      "saving": "创建中..."
+    },
+    "duration": "{{minutes}} 分钟",
+    "startExam": "开始考试",
+    "addQuestion": "添加题目",
+    "emptyTitle": "暂无课程",
+    "emptyAdminDesc": "请先创建课程，再添加题目。",
+    "emptyUserDesc": "暂时没有可用课程，请联系管理员。",
+    "emptyAdminHint": "使用上方表单创建第一门课程。",
+    "noDescription": "暂无课程描述。",
+    "toastLoadFail": "加载课程失败",
+    "toastLoginFirst": "请先登录",
+    "toastMissingTitle": "请输入课程名称",
+    "toastInvalidDuration": "请输入有效的考试时长",
+    "toastCreateFail": "创建课程失败，请重试",
+    "toastCreated": "课程创建成功"
   },
   "questions": {
     "title": "我的题库",
     "subtitle": "管理和预览您导入的所有题目",
+    "courseLabel": "课程",
+    "noCourses": "暂无课程。",
+    "goCreateCourse": "创建课程",
+    "noCoursesTitle": "尚未创建课程",
+    "noCoursesDesc": "请先创建课程，再开始添加题目。",
     "listTitle": "题目列表",
     "listStats": "总共 {{total}} 道题目，当前显示 {{filtered}} 道",
     "searchPlaceholder": "搜索题目...",
@@ -124,6 +158,9 @@
   "import": {
     "title": "导入题库",
     "subtitle": "上传包含考题的文本文件，系统将自动解析并添加到您的题库",
+    "courseLabel": "课程",
+    "noCourses": "暂无课程。",
+    "goCreateCourse": "创建课程",
     "importedTitle": "已导入题目",
     "previewTitle": "题目预览",
     "previewMore": "... 还有 {{count}} 道题目未显示 ...",
@@ -146,7 +183,8 @@
       "saveFail": "保存题目失败，请重试",
       "deleteFail": "删除题目失败",
       "deleted": "题目已删除",
-      "loginFirst": "请先登录"
+      "loginFirst": "请先登录",
+      "courseRequired": "请先选择课程"
     }
   },
   "fileImporter": {
@@ -176,6 +214,9 @@
   "createQuestion": {
     "title": "创建题目",
     "subtitle": "手动创建新题目并添加到您的题库",
+    "courseLabel": "课程",
+    "noCourses": "暂无课程。",
+    "goCreateCourse": "创建课程",
     "questionLabel": "题目内容",
     "questionPlaceholder": "请输入题目内容...",
     "questionTypeLabel": "题型",
@@ -215,6 +256,7 @@
     "toast": {
       "needOption": "至少需要保留一个选项",
       "needRequirement": "至少需要保留一条描述",
+      "missingCourse": "请先选择课程",
       "missingQuestion": "请输入题目内容",
       "missingOption": "请至少输入一个选项",
       "missingCorrect": "请选择正确答案",
@@ -231,14 +273,22 @@
   },
   "exam": {
     "durationLabel": "考试时长（分钟）",
+    "courseLoadFail": "加载课程失败",
+    "courseRequired": "请先选择课程",
     "loadFail": "加载题目失败",
     "noQuestions": "没有可用的题目，请先导入题目",
     "noQuestionsAdmin": "没有可用的题目，请先导入题目",
     "noQuestionsUser": "暂无可用题目，请联系管理员。",
     "loginFirst": "请先登录",
     "preStartTitle": "准备开始模拟考试",
+    "preStartTitleWithCourse": "准备开始 {{course}}",
+    "courseLabel": "课程：{{title}}",
     "preStartDesc": "本次考试共有 {{count}} 道题目，考试时长为 {{duration}} 分钟",
     "goImport": "去导入题目",
+    "loadingCourse": "正在加载课程信息...",
+    "noCourseSelected": "请先选择课程再开始考试。",
+    "goSelectCourse": "选择课程",
+    "backToCourses": "返回课程列表",
     "rules": {
       "title": "考试规则：",
       "timing": "考试开始后将开始计时，时间结束后自动提交",
