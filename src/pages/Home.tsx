@@ -14,6 +14,7 @@ export default function Home() {
   const { currentUser, logout, getAllUsers } = useContext(AuthContext);
   const { t } = useTranslation();
   const [showGlobalStats, setShowGlobalStats] = useState(false);
+  const [isUserMenuOpen, setIsUserMenuOpen] = useState(false);
   const [userStats, setUserStats] = useState({
     totalExams: 0,
     averageScore: 0,
@@ -217,7 +218,10 @@ export default function Home() {
             )}
             <div className="relative">
               <button
+                onClick={() => setIsUserMenuOpen((open) => !open)}
                 className="flex items-center space-x-2 px-4 py-2 bg-gray-100 dark:bg-gray-700 rounded-full hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors"
+                aria-haspopup="menu"
+                aria-expanded={isUserMenuOpen}
               >
                 <i className="fa-solid fa-user"></i>
                 <span>{currentUser.username}</span>
@@ -227,14 +231,25 @@ export default function Home() {
                   </span>
                 )}
               </button>
+              {isUserMenuOpen && (
+                <div
+                  className="absolute right-0 mt-2 w-44 rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 shadow-lg overflow-hidden z-50"
+                  role="menu"
+                >
+                  <button
+                    onClick={() => {
+                      setIsUserMenuOpen(false);
+                      logout();
+                    }}
+                    className="w-full flex items-center px-4 py-2 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
+                    role="menuitem"
+                  >
+                    <i className="fa-solid fa-right-from-bracket mr-2"></i>
+                    {t('common.logout')}
+                  </button>
+                </div>
+              )}
             </div>
-            <button
-              onClick={logout}
-              className="p-2 rounded-full bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors"
-              aria-label={t('common.logout')}
-            >
-              <i className="fa-solid fa-right-from-bracket"></i>
-            </button>
             <LanguageSwitcher className="p-2 rounded-full bg-gray-100 dark:bg-gray-700 transition-colors text-gray-600 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600" />
             <button
               onClick={toggleTheme}
@@ -263,8 +278,13 @@ export default function Home() {
                 transition={{ duration: 0.5 }}
               >
                 <h2 className="text-3xl font-bold mb-2">
-                  {showGlobalStats && currentUser.isAdmin ? t('home.globalStatsTitle') : t('home.welcomeBack')}
-                  {currentUser.username}
+                  {showGlobalStats && currentUser.isAdmin
+                    ? t('home.globalStatsTitle')
+                    : <>
+                        {t('home.welcomeBack')}
+                        {currentUser.username}
+                      </>
+                  }
                 </h2>
                 <p className="text-gray-600 dark:text-gray-400">
                   {showGlobalStats && currentUser.isAdmin 
