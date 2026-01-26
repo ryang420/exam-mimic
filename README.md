@@ -1,10 +1,8 @@
 # 
 
-项目编号: 7597264339938803977
+项目名称: AWS认证模拟考试系统
 
-本项目是由 [网站开发专家](https://space.coze.cn/) 创建.
-
-[**项目地址**](https://space.coze.cn/task/7597264339938803977)
+[**项目地址**](https://github.com/ryang420/exam-mimic)
 
 ## 本地开发
 
@@ -19,6 +17,19 @@
 
 ```sh
 pnpm install
+```
+
+- 复制 .env.example 文件为 .env 文件
+
+```sh
+cp .env.example .env
+```
+
+- 修改 .env 文件中的 VITE_SUPABASE_URL 和 VITE_SUPABASE_ANON_KEY
+
+```sh
+VITE_SUPABASE_URL=https://xxx.supabase.co
+VITE_SUPABASE_ANON_KEY=xxx
 ```
 
 - 启动 Dev Server
