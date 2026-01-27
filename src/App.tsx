@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Routes, Route, useNavigate, Navigate } from 'react-router-dom';
-import { AuthContext, type LoginResult, User } from './contexts/authContext';
+import { AuthContext, type LoginResult, type User, type UserRole } from './contexts/authContext';
 import { supabase } from './lib/supabase';
 
 // 页面组件
@@ -23,22 +23,36 @@ type ProfileRow = {
   username: string | null;
   first_name: string | null;
   last_name: string | null;
-  is_admin: boolean | null;
+  role?: string | null;
   created_at: string | null;
   theme?: string | null;
   migration_completed?: boolean | null;
 };
 
+const normalizeRole = (profileRole: string | null | undefined): UserRole => {
+  if (profileRole === 'admin') {
+    return 'admin';
+  }
+  if (profileRole === 'author') {
+    return 'author';
+  }
+  return 'user';
+};
+
 const buildUser = (authUser: any, profile?: ProfileRow | null): User => {
   const email = authUser?.email ?? '';
   const usernameFromEmail = email.includes('@') ? email.split('@')[0] : email;
+  const role = normalizeRole(profile?.role ?? authUser?.user_metadata?.role ?? null);
+  const isAdmin = role === 'admin';
   return {
     id: authUser?.id ?? '',
     email,
     username: profile?.username?.trim() || authUser?.user_metadata?.username || usernameFromEmail || '用户',
     firstName: profile?.first_name?.trim() || authUser?.user_metadata?.first_name || '',
     lastName: profile?.last_name?.trim() || authUser?.user_metadata?.last_name || '',
-    isAdmin: profile?.is_admin ?? false,
+    isAdmin,
+    isAuthor: role === 'author',
+    role,
     createdAt: profile?.created_at ?? authUser?.created_at ?? new Date().toISOString()
   };
 };
@@ -46,7 +60,7 @@ const buildUser = (authUser: any, profile?: ProfileRow | null): User => {
 const fetchProfile = async (userId: string) => {
   const { data, error } = await supabase
     .from('profiles')
-    .select('id, username, first_name, last_name, is_admin, created_at, theme, migration_completed')
+    .select('id, username, first_name, last_name, role, created_at, theme, migration_completed')
     .eq('id', userId)
     .maybeSingle();
 
@@ -76,7 +90,7 @@ const ensureProfile = async (authUser: any) => {
       username,
       first_name: authUser?.user_metadata?.first_name || null,
       last_name: authUser?.user_metadata?.last_name || null,
-      is_admin: false
+      role: 'user'
     },
     { onConflict: 'id' }
   );
@@ -96,6 +110,7 @@ const migrateLocalStorageData = async (user: User, profile?: ProfileRow | null) 
 
   const userId = user.id;
   const username = user.username || (user.email ? user.email.split('@')[0] : '用户');
+  const canManageQuestions = user.isAdmin || user.isAuthor;
 
   const theme = localStorage.getItem('theme');
   if (theme && theme !== profile?.theme) {
@@ -125,7 +140,7 @@ const migrateLocalStorageData = async (user: User, profile?: ProfileRow | null) 
             sub_questions: Array.isArray(question.subQuestions) ? question.subQuestions : [],
             created_at: question.createdAt,
             created_by: question.createdBy ?? username,
-            is_global: user.isAdmin ? true : false
+            is_global: canManageQuestions ? true : false
           };
         });
 
@@ -372,7 +387,7 @@ function App() {
         username,
         first_name: trimmedFirstName,
         last_name: trimmedLastName,
-        is_admin: false
+        role: 'user'
       },
       { onConflict: 'id' }
     );
@@ -392,7 +407,7 @@ function App() {
   const getAllUsers = async (): Promise<User[]> => {
     const { data, error } = await supabase
       .from('profiles')
-      .select('id, username, first_name, last_name, is_admin, created_at');
+      .select('id, username, first_name, last_name, role, created_at');
 
     if (error || !data) {
       return [];
@@ -443,7 +458,7 @@ function App() {
             <Route path="/exam" element={<Exam />} />
             <Route path="/results" element={<Results />} />
           </Route>
-          <Route element={<ProtectedRoute adminOnly />}>
+          <Route element={<ProtectedRoute adminOnly allowAuthor />}>
             <Route path="/import" element={<Import />} />
             <Route path="/questions" element={<Questions />} />
             <Route path="/create-question" element={<CreateQuestion />} />

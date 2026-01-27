@@ -1,6 +1,8 @@
 import { createContext } from "react";
 
 // 用户类型定义
+export type UserRole = 'admin' | 'author' | 'user';
+
 export interface User {
   id: string;
   email: string;
@@ -8,6 +10,8 @@ export interface User {
   firstName: string;
   lastName: string;
   isAdmin: boolean;
+  isAuthor: boolean;
+  role: UserRole;
   createdAt: string;
 }
 

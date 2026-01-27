@@ -4,9 +4,13 @@ import { AuthContext } from '@/contexts/authContext';
 
 interface ProtectedRouteProps {
   adminOnly?: boolean;
+  allowAuthor?: boolean;
 }
 
-export const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ adminOnly = false }) => {
+export const ProtectedRoute: React.FC<ProtectedRouteProps> = ({
+  adminOnly = false,
+  allowAuthor = false
+}) => {
   const { isAuthenticated, currentUser, authReady } = useContext(AuthContext);
   
   if (!authReady) {
@@ -19,7 +23,11 @@ export const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ adminOnly = fals
   }
   
   // 如果需要管理员权限但当前用户不是管理员，重定向到首页
-  if (adminOnly && !currentUser?.isAdmin) {
+  if (
+    adminOnly
+    && !currentUser?.isAdmin
+    && !(allowAuthor && currentUser?.isAuthor)
+  ) {
     return <Navigate to="/" replace />;
   }
   

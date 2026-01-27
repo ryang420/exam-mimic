@@ -19,6 +19,7 @@ export default function Courses() {
   const [description, setDescription] = useState('');
   const [durationMinutes, setDurationMinutes] = useState(60);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const canManageQuestions = currentUser?.isAdmin || currentUser?.isAuthor;
 
   const loadCourses = async () => {
     setIsLoading(true);
@@ -132,7 +133,7 @@ export default function Courses() {
               <p className="text-gray-600 dark:text-gray-400">{t('courses.subtitle')}</p>
             </div>
             <div className="mt-4 md:mt-0 flex flex-wrap gap-3">
-              {currentUser?.isAdmin && (
+              {canManageQuestions && (
                 <Link
                   to="/questions"
                   className="px-4 py-2 bg-purple-100 dark:bg-purple-900/30 text-purple-600 dark:text-purple-400 rounded-lg hover:bg-purple-200 dark:hover:bg-purple-900/50 transition-colors"
@@ -250,7 +251,7 @@ export default function Courses() {
                     >
                       <i className="fa-solid fa-pen-to-square mr-1"></i> {t('courses.startExam')}
                     </Link>
-                    {currentUser?.isAdmin && (
+                    {canManageQuestions && (
                       <Link
                         to={`/create-question?courseId=${course.id}`}
                         className="px-4 py-2 bg-blue-100 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 rounded-lg hover:bg-blue-200 dark:hover:bg-blue-900/50 transition-colors"

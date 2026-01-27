@@ -21,6 +21,7 @@ export default function Import() {
   const [isLoadingCourses, setIsLoadingCourses] = useState(true);
   const [importedQuestions, setImportedQuestions] = useState<Question[]>([]);
   const [showPreview, setShowPreview] = useState(false);
+  const canManageQuestions = currentUser?.isAdmin || currentUser?.isAuthor;
 
   const mapQuestionRow = (row: any): Question => {
     const questionType = resolveQuestionTypeFromRow(row);
@@ -183,7 +184,7 @@ export default function Import() {
         question_type: questionType,
         sub_questions: Array.isArray(question.subQuestions) ? question.subQuestions : [],
         created_by: currentUser.username,
-        is_global: currentUser.isAdmin ? true : false,
+        is_global: canManageQuestions ? true : false,
         course_id: selectedCourseId
       };
     });

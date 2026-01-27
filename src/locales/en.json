@@ -2,6 +2,7 @@
   "common": {
     "appName": "Mock Exam System",
     "admin": "Admin",
+    "author": "Author",
     "backHome": "Back to Home",
     "backQuestionBank": "Back to Question Bank",
     "switchToDark": "Switch to dark mode",
@@ -80,7 +81,7 @@
       "createdAt": "Created",
       "empty": "No users found",
       "nameRequired": "First and last name are required.",
-      "updateSuccess": "User name updated.",
+      "updateSuccess": "User updated.",
       "updateFail": "Failed to update user."
     },
     "quick": {

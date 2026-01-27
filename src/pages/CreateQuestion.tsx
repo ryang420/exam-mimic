@@ -65,6 +65,7 @@ export default function CreateQuestion() {
   const [correctAnswers, setCorrectAnswers] = useState<string[]>([]);
   const [explanation, setExplanation] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const canManageQuestions = currentUser?.isAdmin || currentUser?.isAuthor;
 
   useEffect(() => {
     const loadCourses = async () => {
@@ -298,8 +299,8 @@ export default function CreateQuestion() {
         return;
       }
 
-      const numberScopeColumn = currentUser.isAdmin ? 'is_global' : 'owner_id';
-      const numberScopeValue = currentUser.isAdmin ? true : currentUser.id;
+      const numberScopeColumn = canManageQuestions ? 'is_global' : 'owner_id';
+      const numberScopeValue = canManageQuestions ? true : currentUser.id;
       const { data: maxRows, error: maxError } = await supabase
         .from('questions')
         .select('number')
@@ -347,7 +348,7 @@ export default function CreateQuestion() {
         sub_questions: Array.isArray(newQuestion.subQuestions) ? newQuestion.subQuestions : [],
         created_at: newQuestion.createdAt,
         created_by: newQuestion.createdBy,
-        is_global: currentUser.isAdmin ? true : false,
+        is_global: canManageQuestions ? true : false,
         course_id: selectedCourseId
       };
 

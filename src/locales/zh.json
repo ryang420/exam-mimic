@@ -2,6 +2,7 @@
   "common": {
     "appName": "模拟考试系统",
     "admin": "管理员",
+    "author": "作者",
     "backHome": "返回首页",
     "backQuestionBank": "返回题库",
     "switchToDark": "切换到暗色模式",
@@ -80,7 +81,7 @@
       "createdAt": "注册时间",
       "empty": "未找到用户",
       "nameRequired": "名和姓不能为空。",
-      "updateSuccess": "用户姓名已更新。",
+      "updateSuccess": "用户信息已更新。",
       "updateFail": "更新用户失败。"
     },
     "quick": {

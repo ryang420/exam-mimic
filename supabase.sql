@@ -10,7 +10,7 @@ create table if not exists public.profiles (
   username text,
   first_name text,
   last_name text,
-  is_admin boolean not null default false,
+  role text not null default 'user',
   theme text,
   migration_completed boolean not null default false,
   created_at timestamptz not null default now()
@@ -61,6 +61,27 @@ alter table public.profiles
 alter table public.profiles
   add column if not exists last_name text;
 
+alter table public.profiles
+  add column if not exists role text not null default 'user';
+
+do $$
+begin
+  if exists (
+    select 1
+    from information_schema.columns
+    where table_schema = 'public'
+      and table_name = 'profiles'
+      and column_name = 'is_admin'
+  ) then
+    update public.profiles
+      set role = 'admin'
+      where is_admin = true;
+  end if;
+end $$;
+
+alter table public.profiles
+  drop column if exists is_admin;
+
 create index if not exists questions_owner_id_idx on public.questions (owner_id);
 create index if not exists questions_is_global_idx on public.questions (is_global);
 create index if not exists questions_number_idx on public.questions (number);
@@ -97,12 +118,13 @@ create index if not exists exam_answers_session_id_idx on public.exam_answers (s
 create or replace function public.handle_new_user()
 returns trigger as $$
 begin
-  insert into public.profiles (id, username, first_name, last_name, created_at)
+  insert into public.profiles (id, username, first_name, last_name, role, created_at)
   values (
     new.id,
     new.email,
     new.raw_user_meta_data ->> 'first_name',
     new.raw_user_meta_data ->> 'last_name',
+    'user',
     now()
   )
   on conflict (id) do nothing;
@@ -123,7 +145,7 @@ security definer
 set search_path = public
 as $$
   select coalesce(
-    (select is_admin from public.profiles where id = auth.uid()),
+    (select role = 'admin' from public.profiles where id = auth.uid()),
     false
   );
 $$;
