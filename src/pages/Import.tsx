@@ -1,4 +1,4 @@
-import React, { useState, useContext, useEffect } from 'react';
+import { useState, useContext, useEffect } from 'react';
 import { FileImporter } from '@/components/FileImporter';
 import { QuestionCard } from '@/components/QuestionCard';
 import { Course, Question } from '@/types';
@@ -93,14 +93,49 @@ export default function Import() {
     }
 
     const loadQuestions = async () => {
-      const { data: userQuestions, error } = await supabase
-        .from('questions')
-        .select('*')
-        .eq('owner_id', currentUser.id)
-        .eq('course_id', selectedCourseId)
-        .order('number', { ascending: true });
+      const pageSize = 1000;
+      const fetchPagedQuestions = async (filters: {
+        ownerId?: string;
+        isGlobal?: boolean;
+      }) => {
+        let from = 0;
+        const allRows: any[] = [];
 
-      if (error) {
+        while (true) {
+          let query = supabase
+            .from('questions')
+            .select('*')
+            .eq('course_id', selectedCourseId)
+            .order('number', { ascending: true });
+
+          if (filters.ownerId) {
+            query = query.eq('owner_id', filters.ownerId);
+          }
+
+          if (filters.isGlobal) {
+            query = query.eq('is_global', true);
+          }
+
+          const { data, error } = await query.range(from, from + pageSize - 1);
+          if (error) {
+            throw error;
+          }
+
+          const chunk = data ?? [];
+          allRows.push(...chunk);
+          if (chunk.length < pageSize) {
+            break;
+          }
+          from += pageSize;
+        }
+
+        return allRows;
+      };
+
+      let userQuestions: any[] = [];
+      try {
+        userQuestions = await fetchPagedQuestions({ ownerId: currentUser.id });
+      } catch (error) {
         console.error('加载题目失败:', error);
         return;
       }
@@ -111,14 +146,15 @@ export default function Import() {
       }
 
       if (currentUser.isAdmin) {
-        const { data: globalQuestions } = await supabase
-          .from('questions')
-          .select('*')
-          .eq('is_global', true)
-          .eq('course_id', selectedCourseId)
-          .order('number', { ascending: true });
+        let globalQuestions: any[] = [];
+        try {
+          globalQuestions = await fetchPagedQuestions({ isGlobal: true });
+        } catch (error) {
+          console.error('加载题目失败:', error);
+          return;
+        }
 
-        if (globalQuestions) {
+        if (globalQuestions.length > 0) {
           setImportedQuestions(globalQuestions.map(mapQuestionRow));
         }
       }

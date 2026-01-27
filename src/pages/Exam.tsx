@@ -105,8 +105,7 @@ export default function Exam() {
       });
 
       if (error) {
-        console.error('加载题目失败:', error);
-        toast.error(t('exam.loadFail'));
+        console.error(t('exam.loadFail'), error);
         setIsLoadingQuestions(false);
         return;
       }
