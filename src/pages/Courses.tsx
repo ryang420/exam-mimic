@@ -20,6 +20,12 @@ export default function Courses() {
   const [durationMinutes, setDurationMinutes] = useState(60);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const canManageQuestions = currentUser?.isAdmin || currentUser?.isAuthor;
+  const canEditCourses = currentUser?.isAdmin || currentUser?.isAuthor;
+  const [editingCourseId, setEditingCourseId] = useState<string | null>(null);
+  const [editTitle, setEditTitle] = useState('');
+  const [editDescription, setEditDescription] = useState('');
+  const [editDurationMinutes, setEditDurationMinutes] = useState(60);
+  const [isSavingEdit, setIsSavingEdit] = useState(false);
 
   const loadCourses = async () => {
     setIsLoading(true);
@@ -96,6 +102,69 @@ export default function Courses() {
     resetForm();
     loadCourses();
     setIsSubmitting(false);
+  };
+
+  const handleEditStart = (course: Course) => {
+    setEditingCourseId(course.id);
+    setEditTitle(course.title);
+    setEditDescription(course.description ?? '');
+    setEditDurationMinutes(course.durationMinutes);
+  };
+
+  const handleEditCancel = () => {
+    setEditingCourseId(null);
+    setEditTitle('');
+    setEditDescription('');
+    setEditDurationMinutes(60);
+    setIsSavingEdit(false);
+  };
+
+  const handleEditSave = async () => {
+    if (!editingCourseId) return;
+
+    if (!editTitle.trim()) {
+      toast.error(t('courses.toastMissingTitle'));
+      return;
+    }
+
+    if (!Number.isFinite(editDurationMinutes) || editDurationMinutes <= 0) {
+      toast.error(t('courses.toastInvalidDuration'));
+      return;
+    }
+
+    setIsSavingEdit(true);
+
+    const { error } = await supabase
+      .from('courses')
+      .update({
+        title: editTitle.trim(),
+        description: editDescription.trim() || null,
+        duration_minutes: editDurationMinutes
+      })
+      .eq('id', editingCourseId);
+
+    if (error) {
+      console.error('更新课程失败:', error);
+      toast.error(t('courses.toastUpdateFail'));
+      setIsSavingEdit(false);
+      return;
+    }
+
+    setCourses((prev) =>
+      prev.map((course) =>
+        course.id === editingCourseId
+          ? {
+              ...course,
+              title: editTitle.trim(),
+              description: editDescription.trim() || '',
+              durationMinutes: editDurationMinutes
+            }
+          : course
+      )
+    );
+    toast.success(t('courses.toastUpdated'));
+    setIsSavingEdit(false);
+    setEditingCourseId(null);
   };
 
   return (
@@ -226,42 +295,111 @@ export default function Courses() {
             </div>
           ) : (
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              {courses.map((course) => (
-                <motion.div
-                  key={course.id}
-                  initial={{ opacity: 0, y: 20 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ duration: 0.3 }}
-                  className="bg-white dark:bg-gray-800 rounded-2xl shadow-md border border-gray-100 dark:border-gray-700 p-6 flex flex-col"
-                >
+              {courses.map((course) => {
+                const isEditing = editingCourseId === course.id;
+                return (
+                  <motion.div
+                    key={course.id}
+                    initial={{ opacity: 0, y: 20 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ duration: 0.3 }}
+                    className="bg-white dark:bg-gray-800 rounded-2xl shadow-md border border-gray-100 dark:border-gray-700 p-6 flex flex-col"
+                  >
                   <div className="flex-1">
-                    <h3 className="text-xl font-bold mb-2">{course.title}</h3>
-                    <p className="text-gray-600 dark:text-gray-400 mb-4 whitespace-pre-line">
-                      {course.description || t('courses.noDescription')}
-                    </p>
-                    <div className="text-sm text-gray-500 dark:text-gray-400">
-                      <i className="fa-solid fa-clock mr-2"></i>
-                      {t('courses.duration', { minutes: course.durationMinutes })}
+                    <div className="flex items-start justify-between gap-3 mb-2">
+                      {isEditing ? (
+                        <input
+                          type="text"
+                          value={editTitle}
+                          onChange={(event) => setEditTitle(event.target.value)}
+                          className="w-full px-3 py-2 rounded-lg bg-gray-50 dark:bg-gray-700 border border-gray-200 dark:border-gray-600 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                          placeholder={t('courses.form.titlePlaceholder')}
+                        />
+                      ) : (
+                        <h3 className="text-xl font-bold">{course.title}</h3>
+                      )}
+                      {canEditCourses && !isEditing && (
+                        <button
+                          type="button"
+                          onClick={() => handleEditStart(course)}
+                          className="p-2 rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
+                          aria-label={t('courses.editTitle')}
+                        >
+                          <i className="fa-solid fa-pen"></i>
+                        </button>
+                      )}
                     </div>
-                  </div>
-                  <div className="mt-6 flex flex-wrap gap-3">
-                    <Link
-                      to={`/exam?courseId=${course.id}`}
-                      className="px-4 py-2 bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-300 rounded-lg hover:bg-green-200 dark:hover:bg-green-900/50 transition-colors"
-                    >
-                      <i className="fa-solid fa-pen-to-square mr-1"></i> {t('courses.startExam')}
-                    </Link>
-                    {canManageQuestions && (
-                      <Link
-                        to={`/create-question?courseId=${course.id}`}
-                        className="px-4 py-2 bg-blue-100 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 rounded-lg hover:bg-blue-200 dark:hover:bg-blue-900/50 transition-colors"
-                      >
-                        <i className="fa-solid fa-plus mr-1"></i> {t('courses.addQuestion')}
-                      </Link>
+                    {isEditing ? (
+                      <textarea
+                        value={editDescription}
+                        onChange={(event) => setEditDescription(event.target.value)}
+                        placeholder={t('courses.form.descriptionPlaceholder')}
+                        className="w-full px-3 py-2 rounded-lg bg-gray-50 dark:bg-gray-700 border border-gray-200 dark:border-gray-600 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent h-24 resize-y mb-4"
+                      />
+                    ) : (
+                      <p className="text-gray-600 dark:text-gray-400 mb-4 whitespace-pre-line">
+                        {course.description || t('courses.noDescription')}
+                      </p>
+                    )}
+                    {isEditing ? (
+                      <div className="flex items-center gap-3 text-sm text-gray-500 dark:text-gray-400">
+                        <label className="whitespace-nowrap">{t('courses.form.duration')}</label>
+                        <input
+                          type="number"
+                          min={1}
+                          value={editDurationMinutes}
+                          onChange={(event) => setEditDurationMinutes(Number(event.target.value))}
+                          className="w-24 px-3 py-2 rounded-lg bg-gray-50 dark:bg-gray-700 border border-gray-200 dark:border-gray-600 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                        />
+                      </div>
+                    ) : (
+                      <div className="text-sm text-gray-500 dark:text-gray-400">
+                        <i className="fa-solid fa-clock mr-2"></i>
+                        {t('courses.duration', { minutes: course.durationMinutes })}
+                      </div>
                     )}
                   </div>
-                </motion.div>
-              ))}
+                  <div className="mt-6 flex flex-wrap gap-3">
+                    {isEditing ? (
+                      <>
+                        <button
+                          type="button"
+                          onClick={handleEditSave}
+                          disabled={isSavingEdit}
+                          className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                        >
+                          {isSavingEdit ? t('courses.form.saving') : t('courses.editSave')}
+                        </button>
+                        <button
+                          type="button"
+                          onClick={handleEditCancel}
+                          className="px-4 py-2 bg-gray-200 dark:bg-gray-700 text-gray-800 dark:text-gray-200 rounded-lg hover:bg-gray-300 dark:hover:bg-gray-600 transition-colors"
+                        >
+                          {t('courses.editCancel')}
+                        </button>
+                      </>
+                    ) : (
+                      <>
+                        <Link
+                          to={`/exam?courseId=${course.id}`}
+                          className="px-4 py-2 bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-300 rounded-lg hover:bg-green-200 dark:hover:bg-green-900/50 transition-colors"
+                        >
+                          <i className="fa-solid fa-pen-to-square mr-1"></i> {t('courses.startExam')}
+                        </Link>
+                        {canManageQuestions && (
+                          <Link
+                            to={`/create-question?courseId=${course.id}`}
+                            className="px-4 py-2 bg-blue-100 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 rounded-lg hover:bg-blue-200 dark:hover:bg-blue-900/50 transition-colors"
+                          >
+                            <i className="fa-solid fa-plus mr-1"></i> {t('courses.addQuestion')}
+                          </Link>
+                        )}
+                      </>
+                    )}
+                  </div>
+                  </motion.div>
+                );
+              })}
             </div>
           )}
         </div>

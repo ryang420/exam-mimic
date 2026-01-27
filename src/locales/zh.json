@@ -150,12 +150,17 @@
     "emptyUserDesc": "暂时没有可用课程，请联系管理员。",
     "emptyAdminHint": "使用上方表单创建第一门课程。",
     "noDescription": "暂无课程描述。",
+    "editTitle": "编辑课程",
+    "editSave": "保存修改",
+    "editCancel": "取消",
     "toastLoadFail": "加载课程失败",
     "toastLoginFirst": "请先登录",
     "toastMissingTitle": "请输入课程名称",
     "toastInvalidDuration": "请输入有效的考试时长",
     "toastCreateFail": "创建课程失败，请重试",
-    "toastCreated": "课程创建成功"
+    "toastCreated": "课程创建成功",
+    "toastUpdateFail": "更新课程失败",
+    "toastUpdated": "课程更新成功"
   },
   "questions": {
     "title": "我的题库",

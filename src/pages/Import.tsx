@@ -50,8 +50,7 @@ export default function Import() {
         .order('created_at', { ascending: false });
 
       if (error) {
-        console.error('加载课程失败:', error);
-        toast.error(t('courses.toastLoadFail'));
+        console.error(t('courses.toastLoadFail'), error);
         setIsLoadingCourses(false);
         return;
       }
@@ -136,7 +135,7 @@ export default function Import() {
       try {
         userQuestions = await fetchPagedQuestions({ ownerId: currentUser.id });
       } catch (error) {
-        console.error('加载题目失败:', error);
+        console.error(t('import.loadFail'), error);
         return;
       }
 
@@ -150,7 +149,7 @@ export default function Import() {
         try {
           globalQuestions = await fetchPagedQuestions({ isGlobal: true });
         } catch (error) {
-          console.error('加载题目失败:', error);
+          console.error(t('import.loadFail'), error);
           return;
         }
 
@@ -227,8 +226,7 @@ export default function Import() {
 
     const { error } = await supabase.from('questions').insert(questionRows);
     if (error) {
-      console.error('保存题目失败:', error);
-      toast.error(t('import.toast.saveFail'));
+      console.error(t('import.saveFail'), error);
       return;
     }
 

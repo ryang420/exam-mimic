@@ -150,12 +150,17 @@
     "emptyUserDesc": "No courses available yet. Please contact an admin.",
     "emptyAdminHint": "Create your first course using the form above.",
     "noDescription": "No description provided.",
+    "editTitle": "Edit course",
+    "editSave": "Save changes",
+    "editCancel": "Cancel",
     "toastLoadFail": "Failed to load courses",
     "toastLoginFirst": "Please log in first",
     "toastMissingTitle": "Please enter a course title",
     "toastInvalidDuration": "Please enter a valid duration",
     "toastCreateFail": "Failed to create course, please try again",
-    "toastCreated": "Course created successfully"
+    "toastCreated": "Course created successfully",
+    "toastUpdateFail": "Failed to update course",
+    "toastUpdated": "Course updated successfully"
   },
   "questions": {
     "title": "My Question Bank",

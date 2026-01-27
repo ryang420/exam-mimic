@@ -11,6 +11,7 @@ drop policy if exists "profiles_update_all_admin" on public.profiles;
 drop policy if exists "courses_select_all" on public.courses;
 drop policy if exists "courses_insert_admin" on public.courses;
 drop policy if exists "courses_update_admin" on public.courses;
+drop policy if exists "courses_update_author" on public.courses;
 drop policy if exists "courses_delete_admin" on public.courses;
 
 drop policy if exists "questions_select_own_or_global" on public.questions;
@@ -31,6 +32,7 @@ drop policy if exists "exam_answers_insert_own" on public.exam_answers;
 drop trigger if exists on_auth_user_created on auth.users;
 drop function if exists public.handle_new_user();
 drop function if exists public.is_admin();
+drop function if exists public.is_author();
 drop function if exists public.get_random_questions(text, int);
 
 -- Drop tables in dependency order

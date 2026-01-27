@@ -150,6 +150,19 @@ as $$
   );
 $$;
 
+-- Helper: check author role
+create or replace function public.is_author()
+returns boolean
+language sql
+security definer
+set search_path = public
+as $$
+  select coalesce(
+    (select role = 'author' from public.profiles where id = auth.uid()),
+    false
+  );
+$$;
+
 -- Fetch a random subset of questions for a course
 create or replace function public.get_random_questions(
   course_id_input text,
@@ -209,6 +222,10 @@ create policy "courses_insert_admin"
 create policy "courses_update_admin"
   on public.courses for update
   using (public.is_admin());
+
+create policy "courses_update_author"
+  on public.courses for update
+  using (public.is_author());
 
 create policy "courses_delete_admin"
   on public.courses for delete
