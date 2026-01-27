@@ -11,7 +11,7 @@ import { LanguageSwitcher } from '@/components/LanguageSwitcher';
 
 export default function Courses() {
   const { theme, toggleTheme } = useTheme();
-  const { currentUser } = useContext(AuthContext);
+  const { currentUser, logout } = useContext(AuthContext);
   const { t } = useTranslation();
   const [courses, setCourses] = useState<Course[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -19,6 +19,7 @@ export default function Courses() {
   const [description, setDescription] = useState('');
   const [durationMinutes, setDurationMinutes] = useState(60);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isUserMenuOpen, setIsUserMenuOpen] = useState(false);
   const canManageQuestions = currentUser?.isAdmin || currentUser?.isAuthor;
   const canEditCourses = currentUser?.isAdmin || currentUser?.isAuthor;
   const [editingCourseId, setEditingCourseId] = useState<string | null>(null);
@@ -177,6 +178,45 @@ export default function Courses() {
             {t('common.appName')}
           </h1>
           <div className="flex items-center space-x-4">
+            <div className="relative">
+              <button
+                onClick={() => setIsUserMenuOpen((open) => !open)}
+                className="flex items-center space-x-2 px-4 py-2 bg-gray-100 dark:bg-gray-700 rounded-full hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors"
+                aria-haspopup="menu"
+                aria-expanded={isUserMenuOpen}
+              >
+                <i className="fa-solid fa-user"></i>
+                <span>{currentUser?.firstName} {currentUser?.lastName}</span>
+                {currentUser?.isAdmin && (
+                  <span className="text-xs bg-blue-100 dark:bg-blue-900/50 text-blue-600 dark:text-blue-400 px-2 py-0.5 rounded-full">
+                    {t('common.admin')}
+                  </span>
+                )}
+                {!currentUser?.isAdmin && currentUser?.isAuthor && (
+                  <span className="text-xs bg-purple-100 dark:bg-purple-900/50 text-purple-600 dark:text-purple-300 px-2 py-0.5 rounded-full">
+                    {t('common.author')}
+                  </span>
+                )}
+              </button>
+              {isUserMenuOpen && (
+                <div
+                  className="absolute right-0 mt-2 w-56 rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 shadow-lg overflow-hidden z-50"
+                  role="menu"
+                >
+                  <button
+                    onClick={() => {
+                      setIsUserMenuOpen(false);
+                      logout();
+                    }}
+                    className="w-full flex items-center px-4 py-2 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
+                    role="menuitem"
+                  >
+                    <i className="fa-solid fa-right-from-bracket mr-2"></i>
+                    {t('common.logout')}
+                  </button>
+                </div>
+              )}
+            </div>
             <LanguageSwitcher className="p-2 rounded-full bg-gray-100 dark:bg-gray-700 transition-colors" />
             <button
               onClick={toggleTheme}
