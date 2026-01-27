@@ -271,6 +271,10 @@ create policy "exam_sessions_select_own"
   on public.exam_sessions for select
   using (user_id = auth.uid());
 
+create policy "exam_sessions_select_all_admin"
+  on public.exam_sessions for select
+  using (public.is_admin());
+
 create policy "exam_sessions_insert_own"
   on public.exam_sessions for insert
   with check (user_id = auth.uid());

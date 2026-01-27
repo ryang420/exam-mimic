@@ -23,6 +23,7 @@ drop policy if exists "questions_update_global_admin" on public.questions;
 drop policy if exists "questions_delete_global_admin" on public.questions;
 
 drop policy if exists "exam_sessions_select_own" on public.exam_sessions;
+drop policy if exists "exam_sessions_select_all_admin" on public.exam_sessions;
 drop policy if exists "exam_sessions_insert_own" on public.exam_sessions;
 
 drop policy if exists "exam_answers_select_own" on public.exam_answers;

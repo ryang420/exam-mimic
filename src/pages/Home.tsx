@@ -278,20 +278,11 @@ export default function Home() {
 
     let totalQuestions = 0;
     if (currentUser?.id) {
-      const { count: userQuestionCount } = await supabase
+      const { count } = await supabase
         .from('questions')
         .select('id', { count: 'exact', head: true })
-        .eq('owner_id', currentUser.id);
-
-      if (userQuestionCount && userQuestionCount > 0) {
-        totalQuestions = userQuestionCount;
-      } else {
-        const { count: globalQuestionCount } = await supabase
-          .from('questions')
-          .select('id', { count: 'exact', head: true })
-          .eq('is_global', true);
-        totalQuestions = globalQuestionCount ?? 0;
-      }
+        .or(`owner_id.eq.${currentUser.id},is_global.eq.true`);
+      totalQuestions = count ?? 0;
     }
 
     const { data: globalExamHistory } = await supabase
@@ -309,7 +300,7 @@ export default function Home() {
 
         usersStats.push({
           userId: user.id,
-          username: user.username,
+          username: user.firstName + ' ' + user.lastName,
           totalExams: userExams.length,
           averageScore: Math.round(totalScore / scores.length),
           highestScore: Math.max(...scores),
@@ -341,10 +332,13 @@ export default function Home() {
     ...item,
     name: t('home.charts.examLabel', { index: item.index })
   }));
-  const globalChartData = globalStats.usersStats.slice(0, 8).map((user) => ({
-    name: user.username.length > 6 ? `${user.username.substring(0, 6)}...` : user.username,
-    average: user.averageScore
-  }));
+  const globalChartData = globalStats.usersStats.slice(0, 8).map((user) => {
+    const displayName = (user.username ?? user.userId ?? '').trim() || '—';
+    return {
+      name: displayName,
+      average: user.averageScore
+    };
+  });
   
   if (!currentUser) {
     return (
