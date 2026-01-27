@@ -375,7 +375,7 @@ export default function Home() {
                 aria-expanded={isUserMenuOpen}
               >
                 <i className="fa-solid fa-user"></i>
-                <span>{currentUser.username}</span>
+                <span>{currentUser.firstName} {currentUser.lastName}</span>
                 {currentUser.isAdmin && (
                   <span className="text-xs bg-blue-100 dark:bg-blue-900/50 text-blue-600 dark:text-blue-400 px-2 py-0.5 rounded-full">
                     {t('common.admin')}
@@ -529,9 +529,6 @@ export default function Home() {
                         <div className="font-medium text-gray-900 dark:text-gray-100">
                           {user.username || user.id}
                         </div>
-                        <div className="text-xs text-gray-500 dark:text-gray-400 truncate">
-                          {user.id}
-                        </div>
                       </div>
                       <div className="col-span-2">
                         <span
@@ -610,7 +607,7 @@ export default function Home() {
                     ? t('home.globalStatsTitle')
                     : <>
                         {t('home.welcomeBack')}
-                        {currentUser.username}
+                        {currentUser.firstName} {currentUser.lastName}
                       </>
                   }
                 </h2>

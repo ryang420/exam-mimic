@@ -100,7 +100,7 @@ begin
   insert into public.profiles (id, username, first_name, last_name, created_at)
   values (
     new.id,
-    split_part(new.email, '@', 1),
+    new.email,
     new.raw_user_meta_data ->> 'first_name',
     new.raw_user_meta_data ->> 'last_name',
     now()
