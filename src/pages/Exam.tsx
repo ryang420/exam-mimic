@@ -18,9 +18,12 @@ export default function Exam() {
   const { t } = useTranslation();
   const [searchParams] = useSearchParams();
   const courseId = searchParams.get('courseId');
+  const examQuestionLimit = 65;
   const [course, setCourse] = useState<Course | null>(null);
   const [isLoadingCourse, setIsLoadingCourse] = useState(true);
+  const [questionPool, setQuestionPool] = useState<Question[]>([]);
   const [questions, setQuestions] = useState<Question[]>([]);
+  const [isLoadingQuestions, setIsLoadingQuestions] = useState(false);
   const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0);
   const [userAnswers, setUserAnswers] = useState<Record<string, string[]>>({});
   const [isExamStarted, setIsExamStarted] = useState(false);
@@ -89,29 +92,28 @@ export default function Exam() {
   useEffect(() => {
     if (!currentUser?.id || !courseId) {
       setQuestions([]);
+      setQuestionPool([]);
+      setIsLoadingQuestions(false);
       return;
     }
 
     const loadQuestions = async () => {
-      const { data: questionRows, error } = await supabase
-        .from('questions')
-        .select('*')
-        .eq('course_id', courseId)
-        .order('number', { ascending: true });
+      setIsLoadingQuestions(true);
+      const { data: questionRows, error } = await supabase.rpc('get_random_questions', {
+        course_id_input: courseId,
+        limit_count: examQuestionLimit
+      });
 
       if (error) {
         console.error('加载题目失败:', error);
         toast.error(t('exam.loadFail'));
+        setIsLoadingQuestions(false);
         return;
       }
 
-      if (questionRows.length > 0) {
-        const parsedQuestions = questionRows.map(mapQuestionRow);
-        const shuffledQuestions = [...parsedQuestions].sort(() => Math.random() - 0.5);
-        setQuestions(shuffledQuestions);
-      } else {
-        setQuestions([]);
-      }
+      const parsedQuestions = (questionRows ?? []).map(mapQuestionRow);
+      setQuestionPool(parsedQuestions);
+      setIsLoadingQuestions(false);
     };
 
     loadQuestions();
@@ -124,16 +126,22 @@ export default function Exam() {
       return;
     }
 
-    if (questions.length === 0) {
+    if (isLoadingQuestions) {
+      return;
+    }
+
+    if (questionPool.length === 0) {
       toast.error(t('exam.noQuestions'));
       return;
     }
+
+    const selectedQuestions = [...questionPool].sort(() => Math.random() - 0.5);
     
     // 创建考试会话
     const newSession: ExamSession = {
       id: `exam-${Date.now()}`,
       startTime: new Date(),
-      questions: questions.map(q => ({
+      questions: selectedQuestions.map(q => ({
         questionId: q.id,
         userAnswer: null,
         isCorrect: null
@@ -142,6 +150,7 @@ export default function Exam() {
       courseId: courseId ?? undefined
     };
     
+    setQuestions(selectedQuestions);
     setExamSession(newSession);
     setIsExamStarted(true);
     setCurrentQuestionIndex(0);
@@ -359,6 +368,7 @@ export default function Exam() {
     getQuestionStatus(index) === 'answered' ? total + 1 : total
   ), 0);
   const isCourseReady = Boolean(courseId && course);
+  const availableQuestionCount = Math.min(questionPool.length, examQuestionLimit);
   
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-gray-900 text-gray-900 dark:text-gray-100 transition-colors duration-300">
@@ -404,7 +414,7 @@ export default function Exam() {
                 </p>
               )}
               <p className="text-gray-600 dark:text-gray-400 mb-6">
-                {t('exam.preStartDesc', { count: questions.length, duration: examDuration })}
+                {t('exam.preStartDesc', { count: availableQuestionCount, duration: examDuration })}
               </p>
               {course?.description && (
                 <p className="text-gray-500 dark:text-gray-400 mb-8 whitespace-pre-line">
@@ -427,7 +437,9 @@ export default function Exam() {
                     {t('exam.goSelectCourse')}
                   </Link>
                 </div>
-              ) : questions.length === 0 ? (
+              ) : isLoadingQuestions ? (
+                <div className="mb-8 text-gray-500 dark:text-gray-400">{t('common.loading')}</div>
+              ) : questionPool.length === 0 ? (
                 <div className="mb-8">
                   <p className="text-red-500 dark:text-red-400 mb-4">
                     {currentUser?.isAdmin ? t('exam.noQuestionsAdmin') : t('exam.noQuestionsUser')}

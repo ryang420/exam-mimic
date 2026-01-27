@@ -31,6 +31,7 @@ drop policy if exists "exam_answers_insert_own" on public.exam_answers;
 drop trigger if exists on_auth_user_created on auth.users;
 drop function if exists public.handle_new_user();
 drop function if exists public.is_admin();
+drop function if exists public.get_random_questions(text, int);
 
 -- Drop tables in dependency order
 drop table if exists public.exam_answers;

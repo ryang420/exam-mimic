@@ -150,6 +150,24 @@ as $$
   );
 $$;
 
+-- Fetch a random subset of questions for a course
+create or replace function public.get_random_questions(
+  course_id_input text,
+  limit_count int
+)
+returns setof public.questions
+language sql
+stable
+as $$
+  select *
+  from public.questions
+  where course_id = course_id_input
+  order by random()
+  limit greatest(limit_count, 0);
+$$;
+
+grant execute on function public.get_random_questions(text, int) to anon, authenticated;
+
 -- RLS
 alter table public.profiles enable row level security;
 alter table public.courses enable row level security;
