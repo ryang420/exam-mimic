@@ -1,12 +1,13 @@
 import { useState, useEffect, useContext } from 'react';
 import { useTheme } from '@/hooks/useTheme';
 import { Link } from 'react-router-dom';
-import { AuthContext } from '@/contexts/authContext';
+import { AuthContext, type User } from '@/contexts/authContext';
 import { motion } from 'framer-motion';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, BarChart, Bar, Cell } from 'recharts';
 import { UserStats } from '@/types';
 import { supabase } from '@/lib/supabase';
 import { useTranslation } from 'react-i18next';
+import { toast } from 'sonner';
 import { LanguageSwitcher } from '@/components/LanguageSwitcher';
 
 export default function Home() {
@@ -15,6 +16,13 @@ export default function Home() {
   const { t } = useTranslation();
   const [showGlobalStats, setShowGlobalStats] = useState(false);
   const [isUserMenuOpen, setIsUserMenuOpen] = useState(false);
+  const [isUserManagementOpen, setIsUserManagementOpen] = useState(false);
+  const [userManagementUsers, setUserManagementUsers] = useState<User[]>([]);
+  const [userManagementQuery, setUserManagementQuery] = useState('');
+  const [userManagementLoading, setUserManagementLoading] = useState(false);
+  const [userManagementEdits, setUserManagementEdits] = useState<
+    Record<string, { firstName: string; lastName: string; isSaving: boolean; isEditing: boolean }>
+  >({});
   const [userStats, setUserStats] = useState({
     totalExams: 0,
     averageScore: 0,
@@ -29,6 +37,16 @@ export default function Home() {
     usersStats: [] as UserStats[]
   });
   const [chartData, setChartData] = useState<Array<{ index: number; score: number }>>([]);
+  const normalizedUserQuery = userManagementQuery.trim().toLowerCase();
+  const filteredUsers = userManagementUsers.filter((user) => {
+    if (!normalizedUserQuery) return true;
+    return (
+      user.username?.toLowerCase().includes(normalizedUserQuery) ||
+      user.firstName?.toLowerCase().includes(normalizedUserQuery) ||
+      user.lastName?.toLowerCase().includes(normalizedUserQuery) ||
+      user.id.toLowerCase().includes(normalizedUserQuery)
+    );
+  });
   
   // 加载用户统计数据
   useEffect(() => {
@@ -43,6 +61,139 @@ export default function Home() {
 
     loadStats();
   }, [currentUser, showGlobalStats]);
+
+  useEffect(() => {
+    if (!isUserManagementOpen || !currentUser?.isAdmin) return;
+
+    let isMounted = true;
+    setUserManagementLoading(true);
+
+    getAllUsers()
+      .then((users) => {
+        if (isMounted) {
+          setUserManagementUsers(users);
+        }
+      })
+      .finally(() => {
+        if (isMounted) {
+          setUserManagementLoading(false);
+        }
+      });
+
+    return () => {
+      isMounted = false;
+    };
+  }, [currentUser?.isAdmin, getAllUsers, isUserManagementOpen]);
+
+  useEffect(() => {
+    if (!isUserManagementOpen) return;
+
+    const nextEdits: Record<string, { firstName: string; lastName: string; isSaving: boolean; isEditing: boolean }> = {};
+    userManagementUsers.forEach((user) => {
+      nextEdits[user.id] = {
+        firstName: user.firstName ?? '',
+        lastName: user.lastName ?? '',
+        isSaving: false,
+        isEditing: false
+      };
+    });
+    setUserManagementEdits(nextEdits);
+  }, [isUserManagementOpen, userManagementUsers]);
+
+  const handleUserEditStart = (userId: string) => {
+    const user = userManagementUsers.find((item) => item.id === userId);
+    if (!user) return;
+    setUserManagementEdits((prev) => ({
+      ...prev,
+      [userId]: {
+        firstName: user.firstName ?? '',
+        lastName: user.lastName ?? '',
+        isSaving: prev[userId]?.isSaving ?? false,
+        isEditing: true
+      }
+    }));
+  };
+
+  const handleUserEditCancel = (userId: string) => {
+    const user = userManagementUsers.find((item) => item.id === userId);
+    if (!user) return;
+    setUserManagementEdits((prev) => ({
+      ...prev,
+      [userId]: {
+        firstName: user.firstName ?? '',
+        lastName: user.lastName ?? '',
+        isSaving: false,
+        isEditing: false
+      }
+    }));
+  };
+
+  const handleUserEditChange = (userId: string, field: 'firstName' | 'lastName', value: string) => {
+    setUserManagementEdits((prev) => ({
+      ...prev,
+      [userId]: {
+        ...prev[userId],
+        [field]: value
+      }
+    }));
+  };
+
+  const handleUserManagementSave = async (userId: string) => {
+    const edit = userManagementEdits[userId];
+    if (!edit) return;
+
+    const trimmedFirstName = edit.firstName.trim();
+    const trimmedLastName = edit.lastName.trim();
+
+    if (!trimmedFirstName || !trimmedLastName) {
+      toast.error(t('home.userManagement.nameRequired'));
+      return;
+    }
+
+    setUserManagementEdits((prev) => ({
+      ...prev,
+      [userId]: { ...edit, isSaving: true }
+    }));
+
+    const { error } = await supabase
+      .from('profiles')
+      .update({ first_name: trimmedFirstName, last_name: trimmedLastName })
+      .eq('id', userId);
+
+    if (error) {
+      setUserManagementEdits((prev) => ({
+        ...prev,
+        [userId]: { ...edit, isSaving: false }
+      }));
+      toast.error(t('home.userManagement.updateFail'));
+      return;
+    }
+
+    setUserManagementUsers((prev) =>
+      prev.map((user) =>
+        user.id === userId
+          ? { ...user, firstName: trimmedFirstName, lastName: trimmedLastName }
+          : user
+      )
+    );
+    setUserManagementEdits((prev) => ({
+      ...prev,
+      [userId]: { ...edit, isSaving: false, isEditing: false }
+    }));
+    toast.success(t('home.userManagement.updateSuccess'));
+  };
+
+  const closeUserManagement = () => {
+    setIsUserManagementOpen(false);
+  };
+
+  const formatUserDate = (value: string) => {
+    const date = new Date(value);
+    if (Number.isNaN(date.getTime())) {
+      return value;
+    }
+    return date.toLocaleDateString();
+  };
   
   // 加载用户统计数据
   const loadUserStats = () => {
@@ -233,9 +384,22 @@ export default function Home() {
               </button>
               {isUserMenuOpen && (
                 <div
-                  className="absolute right-0 mt-2 w-44 rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 shadow-lg overflow-hidden z-50"
+                  className="absolute right-0 mt-2 w-56 rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 shadow-lg overflow-hidden z-50"
                   role="menu"
                 >
+                  {currentUser.isAdmin && (
+                    <button
+                      onClick={() => {
+                        setIsUserMenuOpen(false);
+                        setIsUserManagementOpen(true);
+                      }}
+                      className="w-full flex items-center px-4 py-2 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
+                      role="menuitem"
+                    >
+                      <i className="fa-solid fa-users mr-2"></i>
+                      {t('common.userManagement')}
+                    </button>
+                  )}
                   <button
                     onClick={() => {
                       setIsUserMenuOpen(false);
@@ -265,6 +429,170 @@ export default function Home() {
           </div>
         </div>
       </nav>
+
+      {isUserManagementOpen && currentUser.isAdmin && (
+        <div
+          className="fixed inset-0 z-[60] flex items-center justify-center bg-black/40 p-4"
+          onClick={closeUserManagement}
+          role="dialog"
+          aria-modal="true"
+          aria-label={t('common.userManagement')}
+        >
+          <div
+            className="w-full max-w-4xl rounded-2xl bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 shadow-xl p-6"
+            onClick={(event) => event.stopPropagation()}
+          >
+            <div className="flex items-center justify-between mb-4">
+              <h2 className="text-xl font-semibold">{t('home.userManagement.title')}</h2>
+              <button
+                onClick={closeUserManagement}
+                className="p-2 rounded-full bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors"
+                aria-label={t('common.close')}
+              >
+                <i className="fa-solid fa-xmark"></i>
+              </button>
+            </div>
+
+            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+              <div className="relative w-full sm:max-w-sm">
+                <i className="fa-solid fa-magnifying-glass absolute left-3 top-1/2 -translate-y-1/2 text-gray-400"></i>
+                <input
+                  value={userManagementQuery}
+                  onChange={(event) => setUserManagementQuery(event.target.value)}
+                  placeholder={t('home.userManagement.searchPlaceholder')}
+                  className="w-full pl-9 pr-3 py-2 rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                />
+              </div>
+              <div className="text-sm text-gray-500 dark:text-gray-400">
+                {t('home.userManagement.totalUsers')}: {filteredUsers.length}
+              </div>
+            </div>
+
+            <div className="mt-4 overflow-hidden rounded-xl border border-gray-200 dark:border-gray-700">
+              <div className="grid grid-cols-12 bg-gray-50 dark:bg-gray-800 text-xs uppercase tracking-wide text-gray-500 dark:text-gray-400">
+                <div className="col-span-3 px-4 py-2">{t('home.userManagement.firstName')}</div>
+                <div className="col-span-3 px-4 py-2">{t('home.userManagement.lastName')}</div>
+                <div className="col-span-2 px-4 py-2">{t('home.userManagement.username')}</div>
+                <div className="col-span-2 px-4 py-2">{t('home.userManagement.role')}</div>
+                <div className="col-span-2 px-4 py-2">{t('home.userManagement.actions')}</div>
+              </div>
+              <div className="max-h-80 overflow-y-auto bg-white dark:bg-gray-900">
+                {userManagementLoading ? (
+                  <div className="px-4 py-6 text-sm text-gray-500 dark:text-gray-400">
+                    {t('common.loading')}
+                  </div>
+                ) : filteredUsers.length === 0 ? (
+                  <div className="px-4 py-6 text-sm text-gray-500 dark:text-gray-400">
+                    {t('home.userManagement.empty')}
+                  </div>
+                ) : (
+                  filteredUsers.map((user) => (
+                    <div
+                      key={user.id}
+                      className="grid grid-cols-12 items-center px-4 py-3 border-t border-gray-200 dark:border-gray-700 text-sm"
+                    >
+                      <div className="col-span-3">
+                        {userManagementEdits[user.id]?.isEditing ? (
+                          <input
+                            value={userManagementEdits[user.id]?.firstName ?? user.firstName ?? ''}
+                            onChange={(event) => handleUserEditChange(user.id, 'firstName', event.target.value)}
+                            className="w-full rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                          />
+                        ) : (
+                          <button
+                            type="button"
+                            onClick={() => handleUserEditStart(user.id)}
+                            className="text-blue-600 dark:text-blue-400 hover:underline"
+                          >
+                            {(user.firstName || '').trim() || '-'}
+                          </button>
+                        )}
+                      </div>
+                      <div className="col-span-3">
+                        {userManagementEdits[user.id]?.isEditing ? (
+                          <input
+                            value={userManagementEdits[user.id]?.lastName ?? user.lastName ?? ''}
+                            onChange={(event) => handleUserEditChange(user.id, 'lastName', event.target.value)}
+                            className="w-full rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                          />
+                        ) : (
+                          <button
+                            type="button"
+                            onClick={() => handleUserEditStart(user.id)}
+                            className="text-blue-600 dark:text-blue-400 hover:underline"
+                          >
+                            {(user.lastName || '').trim() || '-'}
+                          </button>
+                        )}
+                      </div>
+                      <div className="col-span-2">
+                        <div className="font-medium text-gray-900 dark:text-gray-100">
+                          {user.username || user.id}
+                        </div>
+                        <div className="text-xs text-gray-500 dark:text-gray-400 truncate">
+                          {user.id}
+                        </div>
+                      </div>
+                      <div className="col-span-2">
+                        <span
+                          className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs ${
+                            user.isAdmin
+                              ? 'bg-blue-100 dark:bg-blue-900/40 text-blue-600 dark:text-blue-300'
+                              : 'bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-300'
+                          }`}
+                        >
+                          {user.isAdmin ? t('common.admin') : t('common.user')}
+                        </span>
+                      </div>
+                      <div className="col-span-2 flex flex-col items-start gap-1 text-gray-600 dark:text-gray-400">
+                        <div className="flex items-center gap-2">
+                          {userManagementEdits[user.id]?.isEditing ? (
+                            <>
+                              <button
+                                type="button"
+                                onClick={() => handleUserManagementSave(user.id)}
+                                className="inline-flex items-center justify-center rounded-lg border border-blue-200 dark:border-blue-900/50 bg-blue-50 dark:bg-blue-900/30 px-2.5 py-1 text-xs font-medium text-blue-600 dark:text-blue-300 hover:bg-blue-100 dark:hover:bg-blue-900/60 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                                disabled={
+                                  userManagementEdits[user.id]?.isSaving ||
+                                  ((userManagementEdits[user.id]?.firstName ?? user.firstName ?? '').trim() ===
+                                    (user.firstName ?? '').trim() &&
+                                    (userManagementEdits[user.id]?.lastName ?? user.lastName ?? '').trim() ===
+                                      (user.lastName ?? '').trim())
+                                }
+                              >
+                                {userManagementEdits[user.id]?.isSaving
+                                  ? t('home.userManagement.saving')
+                                  : t('home.userManagement.save')}
+                              </button>
+                              <button
+                                type="button"
+                                onClick={() => handleUserEditCancel(user.id)}
+                                className="inline-flex items-center justify-center rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 px-2.5 py-1 text-xs font-medium text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
+                              >
+                                {t('home.userManagement.cancel')}
+                              </button>
+                            </>
+                          ) : (
+                            <button
+                              type="button"
+                              onClick={() => handleUserEditStart(user.id)}
+                              className="inline-flex items-center justify-center rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 px-2 py-1 text-xs text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
+                              aria-label={t('home.userManagement.edit')}
+                            >
+                              <i className="fa-solid fa-pen"></i>
+                            </button>
+                          )}
+                        </div>
+                        <span className="text-xs">{formatUserDate(user.createdAt)}</span>
+                      </div>
+                    </div>
+                  ))
+                )}
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
       
       {/* 主要内容 */}
       <main className="container mx-auto px-4 py-12">

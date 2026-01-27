@@ -12,6 +12,8 @@ export default function Register() {
   const { register } = useContext(AuthContext);
   const navigate = useNavigate();
   const { t } = useTranslation();
+  const [firstName, setFirstName] = useState('');
+  const [lastName, setLastName] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
@@ -20,7 +22,7 @@ export default function Register() {
   const handleRegister = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    if (!email || !password || !confirmPassword) {
+    if (!firstName.trim() || !lastName.trim() || !email || !password || !confirmPassword) {
       toast.error(t('auth.register.toastMissing'));
       return;
     }
@@ -38,7 +40,7 @@ export default function Register() {
     setIsLoading(true);
     
     try {
-      const success = await register(email, password);
+      const success = await register(email, password, firstName, lastName);
       
       if (success) {
         toast.success(t('auth.register.toastConfirm'));
@@ -72,6 +74,46 @@ export default function Register() {
           <h2 className="text-2xl font-bold text-center mb-6">{t('auth.register.title')}</h2>
           
           <form onSubmit={handleRegister}>
+            <div className="mb-6">
+              <label htmlFor="firstName" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                {t('auth.register.firstName')}
+              </label>
+              <div className="relative">
+                <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                  <i className="fa-solid fa-id-card text-gray-400"></i>
+                </div>
+                <input
+                  id="firstName"
+                  type="text"
+                  value={firstName}
+                  onChange={(e) => setFirstName(e.target.value)}
+                  className="block w-full pl-10 pr-3 py-3 bg-gray-50 dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  placeholder={t('auth.register.firstNamePlaceholder')}
+                  required
+                />
+              </div>
+            </div>
+
+            <div className="mb-6">
+              <label htmlFor="lastName" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                {t('auth.register.lastName')}
+              </label>
+              <div className="relative">
+                <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                  <i className="fa-solid fa-id-card text-gray-400"></i>
+                </div>
+                <input
+                  id="lastName"
+                  type="text"
+                  value={lastName}
+                  onChange={(e) => setLastName(e.target.value)}
+                  className="block w-full pl-10 pr-3 py-3 bg-gray-50 dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  placeholder={t('auth.register.lastNamePlaceholder')}
+                  required
+                />
+              </div>
+            </div>
+
             <div className="mb-6">
               <label htmlFor="email" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                 {t('auth.register.email')}

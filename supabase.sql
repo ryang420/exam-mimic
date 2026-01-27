@@ -8,6 +8,8 @@ create extension if not exists "pgcrypto";
 create table if not exists public.profiles (
   id uuid primary key references auth.users(id) on delete cascade,
   username text,
+  first_name text,
+  last_name text,
   is_admin boolean not null default false,
   theme text,
   migration_completed boolean not null default false,
@@ -53,6 +55,12 @@ alter table public.questions
 alter table public.questions
   add column if not exists course_id text references public.courses(id) on delete cascade;
 
+alter table public.profiles
+  add column if not exists first_name text;
+
+alter table public.profiles
+  add column if not exists last_name text;
+
 create index if not exists questions_owner_id_idx on public.questions (owner_id);
 create index if not exists questions_is_global_idx on public.questions (is_global);
 create index if not exists questions_number_idx on public.questions (number);
@@ -89,8 +97,14 @@ create index if not exists exam_answers_session_id_idx on public.exam_answers (s
 create or replace function public.handle_new_user()
 returns trigger as $$
 begin
-  insert into public.profiles (id, username, created_at)
-  values (new.id, split_part(new.email, '@', 1), now())
+  insert into public.profiles (id, username, first_name, last_name, created_at)
+  values (
+    new.id,
+    split_part(new.email, '@', 1),
+    new.raw_user_meta_data ->> 'first_name',
+    new.raw_user_meta_data ->> 'last_name',
+    now()
+  )
   on conflict (id) do nothing;
   return new;
 end;
@@ -137,6 +151,11 @@ create policy "profiles_insert_own"
 create policy "profiles_update_own"
   on public.profiles for update
   using (auth.uid() = id);
+
+create policy "profiles_update_all_admin"
+  on public.profiles for update
+  using (public.is_admin())
+  with check (public.is_admin());
 
 -- Courses policies
 create policy "courses_select_all"

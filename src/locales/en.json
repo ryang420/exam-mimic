@@ -8,7 +8,10 @@
     "switchToLight": "Switch to light mode",
     "switchLanguage": "Switch language",
     "loading": "Loading...",
-    "logout": "Log out"
+    "logout": "Log out",
+    "userManagement": "User Management",
+    "user": "User",
+    "close": "Close"
   },
   "auth": {
     "login": {
@@ -29,9 +32,13 @@
     },
     "register": {
       "title": "User Registration",
+      "firstName": "First name",
+      "lastName": "Last name",
       "email": "Email",
       "password": "Password",
       "confirmPassword": "Confirm Password",
+      "firstNamePlaceholder": "Enter your first name",
+      "lastNamePlaceholder": "Enter your last name",
       "emailPlaceholder": "Enter your email",
       "passwordPlaceholder": "Enter your password",
       "confirmPlaceholder": "Re-enter your password",
@@ -57,6 +64,25 @@
     "personalStatsDesc": "Here is your exam performance overview",
     "showGlobal": "Show global stats",
     "showPersonal": "Show personal stats",
+    "userManagement": {
+      "title": "User Management",
+      "searchPlaceholder": "Search users",
+      "totalUsers": "Total users",
+      "firstName": "First name",
+      "lastName": "Last name",
+      "username": "Username",
+      "role": "Role",
+      "actions": "Actions",
+      "save": "Save",
+      "saving": "Saving...",
+      "edit": "Edit",
+      "cancel": "Cancel",
+      "createdAt": "Created",
+      "empty": "No users found",
+      "nameRequired": "First and last name are required.",
+      "updateSuccess": "User name updated.",
+      "updateFail": "Failed to update user."
+    },
     "quick": {
       "importTitle": "Import Question Bank",
       "importDesc": "Upload a file of questions to quickly add to your bank",

@@ -6,6 +6,7 @@ drop policy if exists "profiles_select_own" on public.profiles;
 drop policy if exists "profiles_select_all_admin" on public.profiles;
 drop policy if exists "profiles_insert_own" on public.profiles;
 drop policy if exists "profiles_update_own" on public.profiles;
+drop policy if exists "profiles_update_all_admin" on public.profiles;
 
 drop policy if exists "courses_select_all" on public.courses;
 drop policy if exists "courses_insert_admin" on public.courses;

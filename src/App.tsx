@@ -21,6 +21,8 @@ import { useTheme } from './hooks/useTheme';
 type ProfileRow = {
   id: string;
   username: string | null;
+  first_name: string | null;
+  last_name: string | null;
   is_admin: boolean | null;
   created_at: string | null;
   theme?: string | null;
@@ -34,6 +36,8 @@ const buildUser = (authUser: any, profile?: ProfileRow | null): User => {
     id: authUser?.id ?? '',
     email,
     username: profile?.username?.trim() || authUser?.user_metadata?.username || usernameFromEmail || '用户',
+    firstName: profile?.first_name?.trim() || authUser?.user_metadata?.first_name || '',
+    lastName: profile?.last_name?.trim() || authUser?.user_metadata?.last_name || '',
     isAdmin: profile?.is_admin ?? false,
     createdAt: profile?.created_at ?? authUser?.created_at ?? new Date().toISOString()
   };
@@ -42,7 +46,7 @@ const buildUser = (authUser: any, profile?: ProfileRow | null): User => {
 const fetchProfile = async (userId: string) => {
   const { data, error } = await supabase
     .from('profiles')
-    .select('id, username, is_admin, created_at, theme, migration_completed')
+    .select('id, username, first_name, last_name, is_admin, created_at, theme, migration_completed')
     .eq('id', userId)
     .maybeSingle();
 
@@ -70,6 +74,8 @@ const ensureProfile = async (authUser: any) => {
     {
       id: authUser.id,
       username,
+      first_name: authUser?.user_metadata?.first_name || null,
+      last_name: authUser?.user_metadata?.last_name || null,
       is_admin: false
     },
     { onConflict: 'id' }
@@ -330,8 +336,15 @@ function App() {
   };
   
   // 注册函数
-  const register = async (email: string, password: string): Promise<boolean> => {
+  const register = async (
+    email: string,
+    password: string,
+    firstName: string,
+    lastName: string
+  ): Promise<boolean> => {
     const username = email.includes('@') ? email.split('@')[0] : email;
+    const trimmedFirstName = firstName.trim();
+    const trimmedLastName = lastName.trim();
     const emailRedirectTo = typeof window !== 'undefined'
       ? `${window.location.origin}/auth/callback`
       : undefined;
@@ -340,7 +353,11 @@ function App() {
       email,
       password,
       options: {
-        data: { username },
+        data: {
+          username,
+          first_name: trimmedFirstName,
+          last_name: trimmedLastName
+        },
         ...(emailRedirectTo ? { emailRedirectTo } : {})
       }
     });
@@ -353,6 +370,8 @@ function App() {
       {
         id: data.user.id,
         username,
+        first_name: trimmedFirstName,
+        last_name: trimmedLastName,
         is_admin: false
       },
       { onConflict: 'id' }
@@ -373,7 +392,7 @@ function App() {
   const getAllUsers = async (): Promise<User[]> => {
     const { data, error } = await supabase
       .from('profiles')
-      .select('id, username, is_admin, created_at');
+      .select('id, username, first_name, last_name, is_admin, created_at');
 
     if (error || !data) {
       return [];
