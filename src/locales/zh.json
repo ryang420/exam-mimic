@@ -1,6 +1,7 @@
 {
   "common": {
     "appName": "模拟考试系统",
+    "home": "首页",
     "admin": "管理员",
     "author": "作者",
     "backHome": "返回首页",
@@ -171,7 +172,9 @@
     "noCoursesTitle": "尚未创建课程",
     "noCoursesDesc": "请先创建课程，再开始添加题目。",
     "listTitle": "题目列表",
-    "listStats": "总共 {{total}} 道题目，当前显示 {{filtered}} 道",
+    "listStats": "共 {{total}} 道题目，第 {{page}} / {{totalPages}} 页，本页显示 {{showing}} 道",
+    "paginationPrev": "上一页",
+    "paginationNext": "下一页",
     "searchPlaceholder": "搜索题目...",
     "clearSearch": "清除搜索",
     "noQuestionsTitle": "还没有导入题目",

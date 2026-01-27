@@ -1,6 +1,7 @@
 {
   "common": {
     "appName": "Mock Exam System",
+    "home": "Home",
     "admin": "Admin",
     "author": "Author",
     "backHome": "Back to Home",
@@ -171,7 +172,9 @@
     "noCoursesTitle": "No courses found",
     "noCoursesDesc": "Create a course first to organize questions.",
     "listTitle": "Question List",
-    "listStats": "Total {{total}} questions, showing {{filtered}}",
+    "listStats": "Total {{total}} questions, page {{page}} of {{totalPages}}, showing {{showing}} on this page",
+    "paginationPrev": "Previous",
+    "paginationNext": "Next",
     "searchPlaceholder": "Search questions...",
     "clearSearch": "Clear search",
     "noQuestionsTitle": "No questions imported yet",

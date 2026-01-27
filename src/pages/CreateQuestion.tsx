@@ -8,6 +8,7 @@ import { AuthContext } from '@/contexts/authContext';
 import { supabase } from '@/lib/supabase';
 import { useTranslation } from 'react-i18next';
 import { LanguageSwitcher } from '@/components/LanguageSwitcher';
+import { Breadcrumbs } from '@/components/Breadcrumbs';
 
 // 生成下一个选项字母（A, B, C, ..., Z, AA, AB, ...）
 const getNextOptionKey = (currentKeys: string[]): string => {
@@ -47,7 +48,7 @@ const getNextOptionKey = (currentKeys: string[]): string => {
 
 export default function CreateQuestion() {
   const { theme, toggleTheme } = useTheme();
-  const { currentUser } = useContext(AuthContext);
+  const { currentUser, logout } = useContext(AuthContext);
   const { t } = useTranslation();
   const [searchParams] = useSearchParams();
   const [courses, setCourses] = useState<Course[]>([]);
@@ -65,6 +66,7 @@ export default function CreateQuestion() {
   const [correctAnswers, setCorrectAnswers] = useState<string[]>([]);
   const [explanation, setExplanation] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isUserMenuOpen, setIsUserMenuOpen] = useState(false);
   const canManageQuestions = currentUser?.isAdmin || currentUser?.isAuthor;
 
   useEffect(() => {
@@ -425,6 +427,45 @@ export default function CreateQuestion() {
             {t('common.appName')}
           </h1>
           <div className="flex items-center space-x-4">
+            <div className="relative">
+              <button
+                onClick={() => setIsUserMenuOpen((open) => !open)}
+                className="flex items-center space-x-2 px-4 py-2 bg-gray-100 dark:bg-gray-700 rounded-full hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors"
+                aria-haspopup="menu"
+                aria-expanded={isUserMenuOpen}
+              >
+                <i className="fa-solid fa-user"></i>
+                <span>{currentUser?.firstName} {currentUser?.lastName}</span>
+                {currentUser?.isAdmin && (
+                  <span className="text-xs bg-blue-100 dark:bg-blue-900/50 text-blue-600 dark:text-blue-400 px-2 py-0.5 rounded-full">
+                    {t('common.admin')}
+                  </span>
+                )}
+                {!currentUser?.isAdmin && currentUser?.isAuthor && (
+                  <span className="text-xs bg-purple-100 dark:bg-purple-900/50 text-purple-600 dark:text-purple-300 px-2 py-0.5 rounded-full">
+                    {t('common.author')}
+                  </span>
+                )}
+              </button>
+              {isUserMenuOpen && (
+                <div
+                  className="absolute right-0 mt-2 w-56 rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 shadow-lg overflow-hidden z-50"
+                  role="menu"
+                >
+                  <button
+                    onClick={() => {
+                      setIsUserMenuOpen(false);
+                      logout();
+                    }}
+                    className="w-full flex items-center px-4 py-2 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
+                    role="menuitem"
+                  >
+                    <i className="fa-solid fa-right-from-bracket mr-2"></i>
+                    {t('common.logout')}
+                  </button>
+                </div>
+              )}
+            </div>
             <LanguageSwitcher className="p-2 rounded-full bg-gray-100 dark:bg-gray-700 transition-colors" />
             <button
               onClick={toggleTheme}
@@ -444,6 +485,12 @@ export default function CreateQuestion() {
       {/* 主要内容 */}
       <main className="container mx-auto px-4 py-12">
         <div className="max-w-3xl mx-auto">
+          <Breadcrumbs
+            items={[
+              { label: t('common.home'), to: '/' },
+              { label: t('createQuestion.title') }
+            ]}
+          />
           <div className="flex items-center justify-between mb-8">
             <div>
               <h2 className="text-3xl font-bold mb-2">{t('createQuestion.title')}</h2>

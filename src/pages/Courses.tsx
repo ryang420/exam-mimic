@@ -8,6 +8,7 @@ import { toast } from 'sonner';
 import { motion } from 'framer-motion';
 import { useTranslation } from 'react-i18next';
 import { LanguageSwitcher } from '@/components/LanguageSwitcher';
+import { Breadcrumbs } from '@/components/Breadcrumbs';
 
 export default function Courses() {
   const { theme, toggleTheme } = useTheme();
@@ -236,6 +237,12 @@ export default function Courses() {
       {/* 主要内容 */}
       <main className="container mx-auto px-4 py-12">
         <div className="max-w-5xl mx-auto">
+          <Breadcrumbs
+            items={[
+              { label: t('common.home'), to: '/' },
+              { label: t('courses.title') }
+            ]}
+          />
           <div className="flex flex-col md:flex-row md:items-center justify-between mb-8">
             <div>
               <h2 className="text-3xl font-bold mb-2">{t('courses.title')}</h2>
@@ -250,12 +257,6 @@ export default function Courses() {
                   <i className="fa-solid fa-book mr-1"></i> {t('courses.manageQuestions')}
                 </Link>
               )}
-              <Link
-                to="/"
-                className="px-4 py-2 bg-gray-200 dark:bg-gray-700 hover:bg-gray-300 dark:hover:bg-gray-600 rounded-lg transition-colors"
-              >
-                <i className="fa-solid fa-arrow-left mr-1"></i> {t('common.backHome')}
-              </Link>
             </div>
           </div>
 

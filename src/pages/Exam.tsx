@@ -10,6 +10,7 @@ import { AuthContext } from '@/contexts/authContext';
 import { supabase } from '@/lib/supabase';
 import { useTranslation } from 'react-i18next';
 import { LanguageSwitcher } from '@/components/LanguageSwitcher';
+import { Breadcrumbs } from '@/components/Breadcrumbs';
 
 export default function Exam() {
   const { theme, toggleTheme } = useTheme();
@@ -438,6 +439,13 @@ export default function Exam() {
       {/* 主要内容 */}
       <main className="container mx-auto px-4 py-8">
         <div className="max-w-5xl mx-auto">
+          <Breadcrumbs
+            items={[
+              { label: t('common.home'), to: '/' },
+              { label: t('courses.title'), to: '/courses' },
+              { label: t('exam.title') }
+            ]}
+          />
           {!isExamStarted ? (
             // 考试开始前
             <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-lg border border-gray-100 dark:border-gray-700 p-8 text-center">
