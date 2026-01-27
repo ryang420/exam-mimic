@@ -114,7 +114,7 @@ export default function Questions() {
 
       const esc = (s: string) => s.replace(/\\/g, '\\\\').replace(/%/g, '\\%').replace(/_/g, '\\_');
 
-      const runQuery = (ownerId: string | null, isGlobal: boolean) => {
+      const runQuery = () => {
         let query = supabase
           .from('questions')
           .select('*', { count: 'exact' })
@@ -130,10 +130,7 @@ export default function Questions() {
         return query.or(`question.ilike.%${esc(term)}%,explanation.ilike.%${esc(term)}%,number.eq.${num}`);
       };
 
-      const { data: userRows, count: userCount, error: userErr } = await runQuery(
-        currentUser.id,
-        false
-      );
+      const { data: userRows, count: userCount, error: userErr } = await runQuery();
 
       if (userErr) {
         if (!cancelled) {
@@ -163,10 +160,7 @@ export default function Questions() {
       let rows = userRows ?? [];
 
       if (total === 0 && (!rows || rows.length === 0)) {
-        const { data: globalRows, count: globalCount, error: globalErr } = await runQuery(
-          null,
-          true
-        );
+        const { data: globalRows, count: globalCount, error: globalErr } = await runQuery();
         if (!cancelled && !globalErr) {
           setPageQuestions((globalRows ?? []).map(mapQuestionRow));
           setTotalCount(globalCount ?? 0);
@@ -243,7 +237,7 @@ export default function Questions() {
         await supabase
           .from('questions')
           .delete()
-          .eq('owner_id', currentUser.id)
+          .eq('is_global', true)
           .eq('course_id', selectedCourseId);
 
         if (currentUser.isAdmin) {
