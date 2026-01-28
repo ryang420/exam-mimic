@@ -129,6 +129,26 @@
       "startExam": "Courses"
     }
   },
+  "history": {
+    "title": "Test History",
+    "subtitle": "Review every exam attempt and open results.",
+    "emptyTitle": "No exam history yet",
+    "emptyDesc": "Take an exam to see your attempts here.",
+    "toastLoadFail": "Failed to load exam history",
+    "grid": {
+      "id": "History ID",
+      "score": "Score",
+      "started": "Started",
+      "ended": "Completed",
+      "duration": "Duration",
+      "openResults": "View results"
+    },
+    "pagination": {
+      "prev": "Previous",
+      "next": "Next",
+      "page": "Page {{page}} of {{total}}"
+    }
+  },
   "courses": {
     "title": "Courses",
     "subtitle": "Select a course to take a mock exam",

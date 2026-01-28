@@ -15,6 +15,7 @@ import Questions from './pages/Questions';
 import CreateQuestion from './pages/CreateQuestion';
 import Exam from './pages/Exam';
 import Results from './pages/Results';
+import TestHistory from './pages/TestHistory';
 import { ProtectedRoute } from './components/ProtectedRoute';
 import { useTheme } from './hooks/useTheme';
 
@@ -457,6 +458,7 @@ function App() {
             <Route path="/courses" element={<Courses />} />
             <Route path="/exam" element={<Exam />} />
             <Route path="/results" element={<Results />} />
+            <Route path="/history" element={<TestHistory />} />
           </Route>
           <Route element={<ProtectedRoute adminOnly allowAuthor />}>
             <Route path="/import" element={<Import />} />

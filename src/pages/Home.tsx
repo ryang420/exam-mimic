@@ -801,7 +801,13 @@ export default function Home() {
                   </div>
                 </div>
                 <div className="text-4xl font-bold text-gray-900 dark:text-white">
-                  {userStats.totalExams}
+                  <Link
+                    to="/history"
+                    className="text-blue-600 dark:text-blue-400 hover:underline focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 rounded"
+                    aria-label={t('history.title')}
+                  >
+                    {userStats.totalExams}
+                  </Link>
                 </div>
                 <div className="mt-2 text-sm text-gray-600 dark:text-gray-400">
                   {t('home.stats.userExamsDesc')}
