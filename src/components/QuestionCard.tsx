@@ -10,6 +10,8 @@ interface QuestionCardProps {
   showExplanation?: boolean;
   isEditable?: boolean;
   userAnswer?: string | string[] | null;
+  /** When set (e.g. on Results page), show this instead of question.number for display order */
+  displayNumber?: number;
 }
 
 export const QuestionCard: React.FC<QuestionCardProps> = ({
@@ -17,8 +19,10 @@ export const QuestionCard: React.FC<QuestionCardProps> = ({
   onDelete,
   showExplanation = false,
   isEditable = false,
-  userAnswer = null
+  userAnswer = null,
+  displayNumber
 }) => {
+  const numberToShow = displayNumber ?? question.number;
   const { t } = useTranslation();
   const questionType = resolveQuestionType(question);
   const isOrderQuestion = questionType === 'order';
@@ -70,10 +74,10 @@ export const QuestionCard: React.FC<QuestionCardProps> = ({
       <div className="bg-gray-50 dark:bg-gray-750 px-6 py-4 border-b border-gray-100 dark:border-gray-700 flex justify-between items-center">
         <div className="flex items-center">
           <span className="inline-block w-8 h-8 rounded-full bg-blue-100 dark:bg-blue-900/50 text-blue-600 dark:text-blue-400 flex items-center justify-center font-bold mr-3">
-            {question.number}
+            {numberToShow}
           </span>
           <h3 className="font-semibold text-gray-800 dark:text-gray-200">
-            {t('questionCard.questionLabel')} #{question.number}
+            {t('questionCard.questionLabel')} #{numberToShow}
             {isMultipleChoice && (
               <span className="ml-2 text-sm bg-blue-100 dark:bg-blue-900/50 text-blue-600 dark:text-blue-400 px-2 py-0.5 rounded">
                 {t('questionCard.multipleChoice')}

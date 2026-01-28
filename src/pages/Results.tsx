@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useContext } from 'react';
+import { useState, useEffect, useContext } from 'react';
 import { QuestionCard } from '@/components/QuestionCard';
 import { ExamSession, Question } from '@/types';
 import { resolveQuestionTypeFromRow } from '@/lib/questionType';
@@ -153,7 +153,7 @@ export default function Results() {
   const getDisplayQuestions = () => {
     if (!showIncorrectOnly) return questions;
     
-    return questions.filter((question, index) => {
+    return questions.filter((_question, index) => {
       if (!examResult) return false;
       return examResult.questions[index].isCorrect === false;
     });
@@ -309,7 +309,7 @@ export default function Results() {
                           fill="#8884d8"
                           dataKey="value"
                         >
-                          {getPieData().map((entry, index) => (
+                          {getPieData().map((_entry, index) => (
                             <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
                           ))}
                         </Pie>
@@ -359,16 +359,19 @@ export default function Results() {
                 </div>
                 
                 <div className="space-y-6">
-                  {getDisplayQuestions().map((question, index) => {
+                  {getDisplayQuestions().map((question) => {
                     // 找到对应的考试记录
                     const examQuestion = examResult.questions.find(
                       q => q.questionId === question.id
                     );
-                    
+                    // 显示考试中的题号（用户答题时的顺序），而非题库中的题号
+                    const examOrder = questions.findIndex(q => q.id === question.id) + 1;
+
                     return (
                       <QuestionCard
                         key={question.id}
                         question={question}
+                        displayNumber={examOrder}
                         showExplanation={true}
                         userAnswer={examQuestion?.userAnswer || null}
                       />
