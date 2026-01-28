@@ -562,7 +562,7 @@ export default function Exam() {
               />
               
               {/* 题目导航 */}
-              <div className="bg-white dark:bg-gray-800 rounded-xl shadow-md border border-gray-100 dark:border-gray-700 p-4 overflow-x-auto">
+              <div className="bg-white dark:bg-gray-800 rounded-xl shadow-md border border-gray-100 dark:border-gray-700 p-4">
                 <div className="flex items-center mb-3">
                   <h3 className="font-semibold mr-3">{t('exam.navigation.title')}</h3>
                   <div className="flex space-x-2 text-sm">
@@ -577,7 +577,7 @@ export default function Exam() {
                     </span>
                   </div>
                 </div>
-                <div className="flex space-x-2">
+                <div className="flex flex-wrap gap-2">
                   {questions.map((_, index) => {
                     const status = getQuestionStatus(index);
                     let bgColor = 'bg-gray-300 dark:bg-gray-600'; // 未答
@@ -742,36 +742,38 @@ export default function Exam() {
                 )}
                 
                 {/* 操作按钮 */}
-                <div className="flex justify-between items-center pt-4 border-t border-gray-100 dark:border-gray-700">
-                  <button
-                    onClick={prevQuestion}
-                    disabled={currentQuestionIndex === 0}
-                    className={`px-4 py-2 rounded-lg transition-colors ${
-                      currentQuestionIndex === 0
-                        ? 'bg-gray-100 dark:bg-gray-700 text-gray-400 cursor-not-allowed'
-                        : 'bg-gray-200 dark:bg-gray-700 hover:bg-gray-300 dark:hover:bg-gray-600 text-gray-800 dark:text-gray-200'
-                    }`}
-                  >
-                    <i className="fa-solid fa-arrow-left mr-1"></i> {t('exam.prev')}
-                  </button>
-                  
+                <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 pt-4 border-t border-gray-100 dark:border-gray-700">
+                  <div className="flex items-center gap-3">
+                    <button
+                      onClick={prevQuestion}
+                      disabled={currentQuestionIndex === 0}
+                      className={`px-4 py-2 rounded-lg transition-colors ${
+                        currentQuestionIndex === 0
+                          ? 'bg-gray-100 dark:bg-gray-700 text-gray-400 cursor-not-allowed'
+                          : 'bg-gray-200 dark:bg-gray-700 hover:bg-gray-300 dark:hover:bg-gray-600 text-gray-800 dark:text-gray-200'
+                      }`}
+                    >
+                      <i className="fa-solid fa-arrow-left mr-1"></i> {t('exam.prev')}
+                    </button>
+
+                    <button
+                      onClick={nextQuestion}
+                      disabled={currentQuestionIndex === questions.length - 1}
+                      className={`px-4 py-2 rounded-lg transition-colors ${
+                        currentQuestionIndex === questions.length - 1
+                          ? 'bg-gray-100 dark:bg-gray-700 text-gray-400 cursor-not-allowed'
+                          : 'bg-gray-200 dark:bg-gray-700 hover:bg-gray-300 dark:hover:bg-gray-600 text-gray-800 dark:text-gray-200'
+                      }`}
+                    >
+                      {t('exam.next')} <i className="fa-solid fa-arrow-right ml-1"></i>
+                    </button>
+                  </div>
+
                   <button
                     onClick={submitExam}
-                    className="px-6 py-2 bg-red-600 hover:bg-red-700 text-white rounded-lg transition-colors"
+                    className="px-6 py-2 bg-red-600 hover:bg-red-700 text-white rounded-lg transition-colors sm:ml-auto"
                   >
                     <i className="fa-solid fa-paper-plane mr-1"></i> {t('exam.submit')}
-                  </button>
-                  
-                  <button
-                    onClick={nextQuestion}
-                    disabled={currentQuestionIndex === questions.length - 1}
-                    className={`px-4 py-2 rounded-lg transition-colors ${
-                      currentQuestionIndex === questions.length - 1
-                        ? 'bg-gray-100 dark:bg-gray-700 text-gray-400 cursor-not-allowed'
-                        : 'bg-gray-200 dark:bg-gray-700 hover:bg-gray-300 dark:hover:bg-gray-600 text-gray-800 dark:text-gray-200'
-                    }`}
-                  >
-                    {t('exam.next')} <i className="fa-solid fa-arrow-right ml-1"></i>
                   </button>
                 </div>
               </div>
