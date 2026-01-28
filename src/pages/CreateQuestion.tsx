@@ -484,7 +484,7 @@ export default function CreateQuestion() {
       
       {/* 主要内容 */}
       <main className="container mx-auto px-4 py-12">
-        <div className="max-w-3xl mx-auto">
+        <div className="max-w-5xl mx-auto">
           <Breadcrumbs
             items={[
               { label: t('common.home'), to: '/' },

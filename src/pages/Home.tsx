@@ -647,7 +647,7 @@ export default function Home() {
       
       {/* 主要内容 */}
       <main className="container mx-auto px-4 py-12">
-        <div className="max-w-6xl mx-auto">
+        <div className="max-w-5xl mx-auto">
           <Breadcrumbs items={[{ label: t('common.home') }]} />
           {/* 欢迎信息 */}
           <div className="flex flex-col md:flex-row md:items-center justify-between mb-8">

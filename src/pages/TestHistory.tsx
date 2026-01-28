@@ -176,96 +176,98 @@ export default function TestHistory() {
       </nav>
 
       <main className="container mx-auto px-4 py-12">
-        <Breadcrumbs
-          items={[
-            { label: t('common.home'), to: '/' },
-            { label: t('history.title') }
-          ]}
-        />
-        <div className="flex items-center justify-between mb-8">
-          <div>
-            <h2 className="text-3xl font-bold mb-2">{t('history.title')}</h2>
-            <p className="text-gray-600 dark:text-gray-400">{t('history.subtitle')}</p>
+        <div className="max-w-5xl mx-auto">
+          <Breadcrumbs
+            items={[
+              { label: t('common.home'), to: '/' },
+              { label: t('history.title') }
+            ]}
+          />
+          <div className="flex items-center justify-between mb-8">
+            <div>
+              <h2 className="text-3xl font-bold mb-2">{t('history.title')}</h2>
+              <p className="text-gray-600 dark:text-gray-400">{t('history.subtitle')}</p>
+            </div>
           </div>
-        </div>
 
-        {isLoading ? (
-          <div className="flex items-center justify-center py-20">
-            <div className="w-10 h-10 border-4 border-blue-600 border-t-transparent rounded-full animate-spin"></div>
-          </div>
-        ) : historyRows.length === 0 ? (
-          <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-md border border-gray-100 dark:border-gray-700 p-10 text-center">
-            <h3 className="text-xl font-semibold mb-2">{t('history.emptyTitle')}</h3>
-            <p className="text-gray-600 dark:text-gray-400">{t('history.emptyDesc')}</p>
-          </div>
-        ) : (
-          <div>
-            <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
-              {historyRows.map((row, index) => (
-                <motion.div
-                  key={row.id}
-                  initial={{ opacity: 0, y: 20 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ duration: 0.4, delay: index * 0.05 }}
-                  className="bg-white dark:bg-gray-800 rounded-2xl shadow-md border border-gray-100 dark:border-gray-700 p-6"
+          {isLoading ? (
+            <div className="flex items-center justify-center py-20">
+              <div className="w-10 h-10 border-4 border-blue-600 border-t-transparent rounded-full animate-spin"></div>
+            </div>
+          ) : historyRows.length === 0 ? (
+            <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-md border border-gray-100 dark:border-gray-700 p-10 text-center">
+              <h3 className="text-xl font-semibold mb-2">{t('history.emptyTitle')}</h3>
+              <p className="text-gray-600 dark:text-gray-400">{t('history.emptyDesc')}</p>
+            </div>
+          ) : (
+            <div>
+              <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
+                {historyRows.map((row, index) => (
+                  <motion.div
+                    key={row.id}
+                    initial={{ opacity: 0, y: 20 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ duration: 0.4, delay: index * 0.05 }}
+                    className="bg-white dark:bg-gray-800 rounded-2xl shadow-md border border-gray-100 dark:border-gray-700 p-6"
+                  >
+                    <div className="flex items-start justify-between mb-4">
+                      <div>
+                        <p className="text-sm text-gray-500 dark:text-gray-400">{t('history.grid.id')}</p>
+                        <Link
+                          to="/results"
+                          state={{ sessionId: row.id }}
+                          className="text-lg font-semibold text-blue-600 dark:text-blue-400 hover:underline break-all"
+                          aria-label={`${t('history.grid.openResults')}: ${row.id}`}
+                        >
+                          {row.id}
+                        </Link>
+                      </div>
+                      <div className="text-right">
+                        <p className="text-sm text-gray-500 dark:text-gray-400">{t('history.grid.score')}</p>
+                        <p className="text-xl font-semibold text-emerald-600 dark:text-emerald-400">
+                          {row.score ?? '--'}%
+                        </p>
+                      </div>
+                    </div>
+                    <div className="grid grid-cols-2 gap-4 text-sm text-gray-600 dark:text-gray-300">
+                      <div>
+                        <p className="text-xs text-gray-500 dark:text-gray-400">{t('history.grid.started')}</p>
+                        <p className="font-medium">{formatDateTime(row.startedAt || row.createdAt)}</p>
+                      </div>
+                      <div>
+                        <p className="text-xs text-gray-500 dark:text-gray-400">{t('history.grid.ended')}</p>
+                        <p className="font-medium">{formatDateTime(row.endedAt)}</p>
+                      </div>
+                      <div>
+                        <p className="text-xs text-gray-500 dark:text-gray-400">{t('history.grid.duration')}</p>
+                        <p className="font-medium">{formatDuration(row.startedAt, row.endedAt)}</p>
+                      </div>
+                    </div>
+                  </motion.div>
+                ))}
+              </div>
+              <div className="flex items-center justify-center mt-10 gap-4">
+                <button
+                  onClick={() => setPage((prev) => Math.max(1, prev - 1))}
+                  className="px-4 py-2 rounded-full border border-gray-200 dark:border-gray-700 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                  disabled={page <= 1 || isLoading}
                 >
-                  <div className="flex items-start justify-between mb-4">
-                    <div>
-                      <p className="text-sm text-gray-500 dark:text-gray-400">{t('history.grid.id')}</p>
-                      <Link
-                        to="/results"
-                        state={{ sessionId: row.id }}
-                        className="text-lg font-semibold text-blue-600 dark:text-blue-400 hover:underline break-all"
-                        aria-label={`${t('history.grid.openResults')}: ${row.id}`}
-                      >
-                        {row.id}
-                      </Link>
-                    </div>
-                    <div className="text-right">
-                      <p className="text-sm text-gray-500 dark:text-gray-400">{t('history.grid.score')}</p>
-                      <p className="text-xl font-semibold text-emerald-600 dark:text-emerald-400">
-                        {row.score ?? '--'}%
-                      </p>
-                    </div>
-                  </div>
-                  <div className="grid grid-cols-2 gap-4 text-sm text-gray-600 dark:text-gray-300">
-                    <div>
-                      <p className="text-xs text-gray-500 dark:text-gray-400">{t('history.grid.started')}</p>
-                      <p className="font-medium">{formatDateTime(row.startedAt || row.createdAt)}</p>
-                    </div>
-                    <div>
-                      <p className="text-xs text-gray-500 dark:text-gray-400">{t('history.grid.ended')}</p>
-                      <p className="font-medium">{formatDateTime(row.endedAt)}</p>
-                    </div>
-                    <div>
-                      <p className="text-xs text-gray-500 dark:text-gray-400">{t('history.grid.duration')}</p>
-                      <p className="font-medium">{formatDuration(row.startedAt, row.endedAt)}</p>
-                    </div>
-                  </div>
-                </motion.div>
-              ))}
+                  {t('history.pagination.prev')}
+                </button>
+                <span className="text-sm text-gray-600 dark:text-gray-400">
+                  {t('history.pagination.page', { page, total: totalPages })}
+                </span>
+                <button
+                  onClick={() => setPage((prev) => Math.min(totalPages, prev + 1))}
+                  className="px-4 py-2 rounded-full border border-gray-200 dark:border-gray-700 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                  disabled={page >= totalPages || isLoading}
+                >
+                  {t('history.pagination.next')}
+                </button>
+              </div>
             </div>
-            <div className="flex items-center justify-center mt-10 gap-4">
-              <button
-                onClick={() => setPage((prev) => Math.max(1, prev - 1))}
-                className="px-4 py-2 rounded-full border border-gray-200 dark:border-gray-700 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-                disabled={page <= 1 || isLoading}
-              >
-                {t('history.pagination.prev')}
-              </button>
-              <span className="text-sm text-gray-600 dark:text-gray-400">
-                {t('history.pagination.page', { page, total: totalPages })}
-              </span>
-              <button
-                onClick={() => setPage((prev) => Math.min(totalPages, prev + 1))}
-                className="px-4 py-2 rounded-full border border-gray-200 dark:border-gray-700 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-                disabled={page >= totalPages || isLoading}
-              >
-                {t('history.pagination.next')}
-              </button>
-            </div>
-          </div>
-        )}
+          )}
+        </div>
       </main>
     </div>
   );
