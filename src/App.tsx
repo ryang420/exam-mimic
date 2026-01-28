@@ -16,6 +16,7 @@ import CreateQuestion from './pages/CreateQuestion';
 import Exam from './pages/Exam';
 import Results from './pages/Results';
 import TestHistory from './pages/TestHistory';
+import UserManagement from './pages/UserManagement';
 import { ProtectedRoute } from './components/ProtectedRoute';
 import { useTheme } from './hooks/useTheme';
 
@@ -464,6 +465,9 @@ function App() {
             <Route path="/import" element={<Import />} />
             <Route path="/questions" element={<Questions />} />
             <Route path="/create-question" element={<CreateQuestion />} />
+          </Route>
+          <Route element={<ProtectedRoute adminOnly />}>
+            <Route path="/users" element={<UserManagement />} />
           </Route>
         </Routes>
       </div>

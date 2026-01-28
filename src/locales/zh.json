@@ -68,6 +68,7 @@
     "showPersonal": "显示个人统计",
     "userManagement": {
       "title": "用户管理",
+      "subtitle": "查看并编辑用户资料与角色。",
       "searchPlaceholder": "搜索用户",
       "totalUsers": "用户总数",
       "firstName": "名",
@@ -81,6 +82,10 @@
       "cancel": "取消",
       "createdAt": "注册时间",
       "empty": "未找到用户",
+      "showingRange": "显示第 {{from}}–{{to}} 条，共 {{total}} 条",
+      "listStats": "共 {{total}} 个用户，第 {{page}} / {{totalPages}} 页，本页显示 {{showing}} 个",
+      "paginationPrev": "上一页",
+      "paginationNext": "下一页",
       "nameRequired": "名和姓不能为空。",
       "updateSuccess": "用户信息已更新。",
       "updateFail": "更新用户失败。"

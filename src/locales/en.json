@@ -68,6 +68,7 @@
     "showPersonal": "Show personal stats",
     "userManagement": {
       "title": "User Management",
+      "subtitle": "View and edit user profiles and roles.",
       "searchPlaceholder": "Search users",
       "totalUsers": "Total users",
       "firstName": "First name",
@@ -81,6 +82,10 @@
       "cancel": "Cancel",
       "createdAt": "Created",
       "empty": "No users found",
+      "showingRange": "Showing {{from}}–{{to}} of {{total}}",
+      "listStats": "Total {{total}} users, page {{page}} of {{totalPages}}, showing {{showing}} on this page",
+      "paginationPrev": "Previous",
+      "paginationNext": "Next",
       "nameRequired": "First and last name are required.",
       "updateSuccess": "User updated.",
       "updateFail": "Failed to update user."

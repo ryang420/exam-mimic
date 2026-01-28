@@ -1,13 +1,12 @@
 import { useState, useEffect, useContext } from 'react';
 import { useTheme } from '@/hooks/useTheme';
 import { Link } from 'react-router-dom';
-import { AuthContext, type User, type UserRole } from '@/contexts/authContext';
+import { AuthContext } from '@/contexts/authContext';
 import { motion } from 'framer-motion';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, BarChart, Bar, Cell } from 'recharts';
 import { UserStats } from '@/types';
 import { supabase } from '@/lib/supabase';
 import { useTranslation } from 'react-i18next';
-import { toast } from 'sonner';
 import { LanguageSwitcher } from '@/components/LanguageSwitcher';
 import { Breadcrumbs } from '@/components/Breadcrumbs';
 
@@ -17,13 +16,6 @@ export default function Home() {
   const { t } = useTranslation();
   const [showGlobalStats, setShowGlobalStats] = useState(false);
   const [isUserMenuOpen, setIsUserMenuOpen] = useState(false);
-  const [isUserManagementOpen, setIsUserManagementOpen] = useState(false);
-  const [userManagementUsers, setUserManagementUsers] = useState<User[]>([]);
-  const [userManagementQuery, setUserManagementQuery] = useState('');
-  const [userManagementLoading, setUserManagementLoading] = useState(false);
-  const [userManagementEdits, setUserManagementEdits] = useState<
-    Record<string, { firstName: string; lastName: string; role: UserRole; isSaving: boolean; isEditing: boolean }>
-  >({});
   const [userStats, setUserStats] = useState({
     totalExams: 0,
     averageScore: 0,
@@ -38,26 +30,8 @@ export default function Home() {
     usersStats: [] as UserStats[]
   });
   const [chartData, setChartData] = useState<Array<{ index: number; score: number }>>([]);
-  const normalizedUserQuery = userManagementQuery.trim().toLowerCase();
-  const filteredUsers = userManagementUsers.filter((user) => {
-    if (!normalizedUserQuery) return true;
-    return (
-      user.username?.toLowerCase().includes(normalizedUserQuery) ||
-      user.firstName?.toLowerCase().includes(normalizedUserQuery) ||
-      user.lastName?.toLowerCase().includes(normalizedUserQuery) ||
-      user.id.toLowerCase().includes(normalizedUserQuery)
-    );
-  });
   const canManageQuestions = currentUser?.isAdmin || currentUser?.isAuthor;
-  const getRoleLabel = (user: User) =>
-    user.isAdmin ? t('common.admin') : user.isAuthor ? t('common.author') : t('common.user');
-  const getRoleBadgeClasses = (user: User) =>
-    user.isAdmin
-      ? 'bg-blue-100 dark:bg-blue-900/40 text-blue-600 dark:text-blue-300'
-      : user.isAuthor
-        ? 'bg-purple-100 dark:bg-purple-900/40 text-purple-600 dark:text-purple-300'
-        : 'bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-300';
-  
+
   // 加载用户统计数据
   useEffect(() => {
     const loadStats = async () => {
@@ -72,169 +46,6 @@ export default function Home() {
     loadStats();
   }, [currentUser, showGlobalStats]);
 
-  useEffect(() => {
-    if (!isUserManagementOpen || !currentUser?.isAdmin) return;
-
-    let isMounted = true;
-    setUserManagementLoading(true);
-
-    getAllUsers()
-      .then((users) => {
-        if (isMounted) {
-          setUserManagementUsers(users);
-        }
-      })
-      .finally(() => {
-        if (isMounted) {
-          setUserManagementLoading(false);
-        }
-      });
-
-    return () => {
-      isMounted = false;
-    };
-  }, [currentUser?.isAdmin, getAllUsers, isUserManagementOpen]);
-
-  useEffect(() => {
-    if (!isUserManagementOpen) return;
-
-    const nextEdits: Record<string, { firstName: string; lastName: string; role: UserRole; isSaving: boolean; isEditing: boolean }> = {};
-    userManagementUsers.forEach((user) => {
-      nextEdits[user.id] = {
-        firstName: user.firstName ?? '',
-        lastName: user.lastName ?? '',
-        role: user.role,
-        isSaving: false,
-        isEditing: false
-      };
-    });
-    setUserManagementEdits(nextEdits);
-  }, [isUserManagementOpen, userManagementUsers]);
-
-  const handleUserEditStart = (userId: string) => {
-    const user = userManagementUsers.find((item) => item.id === userId);
-    if (!user) return;
-    setUserManagementEdits((prev) => ({
-      ...prev,
-      [userId]: {
-        firstName: user.firstName ?? '',
-        lastName: user.lastName ?? '',
-        role: user.role,
-        isSaving: prev[userId]?.isSaving ?? false,
-        isEditing: true
-      }
-    }));
-  };
-
-  const handleUserEditCancel = (userId: string) => {
-    const user = userManagementUsers.find((item) => item.id === userId);
-    if (!user) return;
-    setUserManagementEdits((prev) => ({
-      ...prev,
-      [userId]: {
-        firstName: user.firstName ?? '',
-        lastName: user.lastName ?? '',
-        role: user.role,
-        isSaving: false,
-        isEditing: false
-      }
-    }));
-  };
-
-  const handleUserEditChange = (userId: string, field: 'firstName' | 'lastName', value: string) => {
-    setUserManagementEdits((prev) => ({
-      ...prev,
-      [userId]: {
-        ...prev[userId],
-        [field]: value
-      }
-    }));
-  };
-
-  const handleUserRoleChange = (userId: string, role: UserRole) => {
-    setUserManagementEdits((prev) => ({
-      ...prev,
-      [userId]: {
-        ...prev[userId],
-        role
-      }
-    }));
-  };
-
-  const handleUserManagementSave = async (userId: string) => {
-    const edit = userManagementEdits[userId];
-    if (!edit) return;
-    const user = userManagementUsers.find((item) => item.id === userId);
-    if (!user) return;
-
-    const trimmedFirstName = edit.firstName.trim();
-    const trimmedLastName = edit.lastName.trim();
-    const nextRole = user.isAdmin ? user.role : (edit.role === 'author' ? 'author' : 'user');
-
-    if (!trimmedFirstName || !trimmedLastName) {
-      toast.error(t('home.userManagement.nameRequired'));
-      return;
-    }
-
-    setUserManagementEdits((prev) => ({
-      ...prev,
-      [userId]: { ...edit, isSaving: true }
-    }));
-
-    const updatePayload: { first_name: string; last_name: string; role?: UserRole } = {
-      first_name: trimmedFirstName,
-      last_name: trimmedLastName
-    };
-    if (!user.isAdmin && nextRole !== user.role) {
-      updatePayload.role = nextRole;
-    }
-
-    const { error } = await supabase
-      .from('profiles')
-      .update(updatePayload)
-      .eq('id', userId);
-
-    if (error) {
-      setUserManagementEdits((prev) => ({
-        ...prev,
-        [userId]: { ...edit, isSaving: false }
-      }));
-      toast.error(t('home.userManagement.updateFail'));
-      return;
-    }
-
-    setUserManagementUsers((prev) =>
-      prev.map((item) =>
-        item.id === userId
-          ? {
-              ...item,
-              firstName: trimmedFirstName,
-              lastName: trimmedLastName,
-              role: item.isAdmin ? item.role : nextRole,
-              isAuthor: !item.isAdmin && nextRole === 'author'
-            }
-          : item
-      )
-    );
-    setUserManagementEdits((prev) => ({
-      ...prev,
-      [userId]: { ...edit, role: nextRole, isSaving: false, isEditing: false }
-    }));
-    toast.success(t('home.userManagement.updateSuccess'));
-  };
-
-  const closeUserManagement = () => {
-    setIsUserManagementOpen(false);
-  };
-
-  const formatUserDate = (value: string) => {
-    const date = new Date(value);
-    if (Number.isNaN(date.getTime())) {
-      return value;
-    }
-    return date.toLocaleDateString();
-  };
-  
   // 加载用户统计数据
   const loadUserStats = () => {
     if (!currentUser) return;
@@ -427,17 +238,15 @@ export default function Home() {
                   role="menu"
                 >
                   {currentUser.isAdmin && (
-                    <button
-                      onClick={() => {
-                        setIsUserMenuOpen(false);
-                        setIsUserManagementOpen(true);
-                      }}
-                      className="w-full flex items-center px-4 py-2 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
+                    <Link
+                      to="/users"
+                      onClick={() => setIsUserMenuOpen(false)}
+                      className="block w-full px-4 py-2 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
                       role="menuitem"
                     >
                       <i className="fa-solid fa-users mr-2"></i>
                       {t('common.userManagement')}
-                    </button>
+                    </Link>
                   )}
                   <button
                     onClick={() => {
@@ -469,182 +278,6 @@ export default function Home() {
         </div>
       </nav>
 
-      {isUserManagementOpen && currentUser.isAdmin && (
-        <div
-          className="fixed inset-0 z-[60] flex items-center justify-center bg-black/40 p-4"
-          onClick={closeUserManagement}
-          role="dialog"
-          aria-modal="true"
-          aria-label={t('common.userManagement')}
-        >
-          <div
-            className="w-full max-w-4xl rounded-2xl bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 shadow-xl p-6"
-            onClick={(event) => event.stopPropagation()}
-          >
-            <div className="flex items-center justify-between mb-4">
-              <h2 className="text-xl font-semibold">{t('home.userManagement.title')}</h2>
-              <button
-                onClick={closeUserManagement}
-                className="p-2 rounded-full bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors"
-                aria-label={t('common.close')}
-              >
-                <i className="fa-solid fa-xmark"></i>
-              </button>
-            </div>
-
-            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
-              <div className="relative w-full sm:max-w-sm">
-                <i className="fa-solid fa-magnifying-glass absolute left-3 top-1/2 -translate-y-1/2 text-gray-400"></i>
-                <input
-                  value={userManagementQuery}
-                  onChange={(event) => setUserManagementQuery(event.target.value)}
-                  placeholder={t('home.userManagement.searchPlaceholder')}
-                  className="w-full pl-9 pr-3 py-2 rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-                />
-              </div>
-              <div className="text-sm text-gray-500 dark:text-gray-400">
-                {t('home.userManagement.totalUsers')}: {filteredUsers.length}
-              </div>
-            </div>
-
-            <div className="mt-4 overflow-hidden rounded-xl border border-gray-200 dark:border-gray-700">
-              <div className="grid grid-cols-12 bg-gray-50 dark:bg-gray-800 text-xs uppercase tracking-wide text-gray-500 dark:text-gray-400">
-                <div className="col-span-2 px-4 py-2">{t('home.userManagement.firstName')}</div>
-                <div className="col-span-2 px-4 py-2">{t('home.userManagement.lastName')}</div>
-                <div className="col-span-3 px-4 py-2">{t('home.userManagement.username')}</div>
-                <div className="col-span-2 px-4 py-2">{t('home.userManagement.role')}</div>
-                <div className="col-span-1 px-4 py-2">{t('home.userManagement.createdAt')}</div>
-                <div className="col-span-2 px-4 py-2">{t('home.userManagement.actions')}</div>
-              </div>
-              <div className="max-h-80 overflow-y-auto bg-white dark:bg-gray-900">
-                {userManagementLoading ? (
-                  <div className="px-4 py-6 text-sm text-gray-500 dark:text-gray-400">
-                    {t('common.loading')}
-                  </div>
-                ) : filteredUsers.length === 0 ? (
-                  <div className="px-4 py-6 text-sm text-gray-500 dark:text-gray-400">
-                    {t('home.userManagement.empty')}
-                  </div>
-                ) : (
-                  filteredUsers.map((user) => {
-                    const edit = userManagementEdits[user.id];
-                    const isEditing = edit?.isEditing;
-                    const firstNameValue = (edit?.firstName ?? user.firstName ?? '').trim();
-                    const lastNameValue = (edit?.lastName ?? user.lastName ?? '').trim();
-                    const roleValue = edit?.role ?? user.role;
-                    const hasNameChange =
-                      firstNameValue !== (user.firstName ?? '').trim() ||
-                      lastNameValue !== (user.lastName ?? '').trim();
-                    const hasRoleChange = !user.isAdmin && roleValue !== user.role;
-                    const saveDisabled = edit?.isSaving || (!hasNameChange && !hasRoleChange);
-
-                    return (
-                      <div
-                        key={user.id}
-                        className="grid grid-cols-12 items-center px-4 py-3 border-t border-gray-200 dark:border-gray-700 text-sm"
-                      >
-                        <div className="col-span-2">
-                          {isEditing ? (
-                            <input
-                              value={edit?.firstName ?? user.firstName ?? ''}
-                              onChange={(event) => handleUserEditChange(user.id, 'firstName', event.target.value)}
-                              className="w-full rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-                            />
-                          ) : (
-                            <button
-                              type="button"
-                              onClick={() => handleUserEditStart(user.id)}
-                              className="text-blue-600 dark:text-blue-400 hover:underline"
-                            >
-                              {(user.firstName || '').trim() || '-'}
-                            </button>
-                          )}
-                        </div>
-                        <div className="col-span-2">
-                          {isEditing ? (
-                            <input
-                              value={edit?.lastName ?? user.lastName ?? ''}
-                              onChange={(event) => handleUserEditChange(user.id, 'lastName', event.target.value)}
-                              className="w-full rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-                            />
-                          ) : (
-                            <button
-                              type="button"
-                              onClick={() => handleUserEditStart(user.id)}
-                              className="text-blue-600 dark:text-blue-400 hover:underline"
-                            >
-                              {(user.lastName || '').trim() || '-'}
-                            </button>
-                          )}
-                        </div>
-                        <div className="col-span-3">
-                          <div className="font-medium text-gray-900 dark:text-gray-100">
-                            {user.username || user.id}
-                          </div>
-                        </div>
-                        <div className="col-span-2">
-                          {isEditing && !user.isAdmin ? (
-                            <select
-                              value={roleValue === 'author' ? 'author' : 'user'}
-                              onChange={(event) => handleUserRoleChange(user.id, event.target.value as UserRole)}
-                              className="w-full rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 px-2 py-1 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-                            >
-                              <option value="user">{t('common.user')}</option>
-                              <option value="author">{t('common.author')}</option>
-                            </select>
-                          ) : (
-                            <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs ${getRoleBadgeClasses(user)}`}>
-                              {getRoleLabel(user)}
-                            </span>
-                          )}
-                        </div>
-                        <div className="col-span-1 text-xs text-gray-600 dark:text-gray-400 whitespace-nowrap">
-                          {formatUserDate(user.createdAt)}
-                        </div>
-                        <div className="col-span-2 flex flex-col items-center gap-1 text-gray-600 dark:text-gray-400">
-                          <div className="flex items-center gap-2">
-                            {isEditing ? (
-                              <>
-                                <button
-                                  type="button"
-                                  onClick={() => handleUserManagementSave(user.id)}
-                                  className="inline-flex items-center justify-center rounded-lg border border-blue-200 dark:border-blue-900/50 bg-blue-50 dark:bg-blue-900/30 px-2.5 py-1 text-xs font-medium text-blue-600 dark:text-blue-300 hover:bg-blue-100 dark:hover:bg-blue-900/60 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-                                  disabled={saveDisabled}
-                                >
-                                  {edit?.isSaving
-                                    ? t('home.userManagement.saving')
-                                    : t('home.userManagement.save')}
-                                </button>
-                                <button
-                                  type="button"
-                                  onClick={() => handleUserEditCancel(user.id)}
-                                  className="inline-flex items-center justify-center rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 px-2.5 py-1 text-xs font-medium text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
-                                >
-                                  {t('home.userManagement.cancel')}
-                                </button>
-                              </>
-                            ) : (
-                              <button
-                                type="button"
-                                onClick={() => handleUserEditStart(user.id)}
-                                className="inline-flex items-center justify-center rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 px-2 py-1 text-xs text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
-                                aria-label={t('home.userManagement.edit')}
-                              >
-                                <i className="fa-solid fa-pen"></i>
-                              </button>
-                            )}
-                          </div>
-                        </div>
-                      </div>
-                    );
-                  })
-                )}
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
-      
       {/* 主要内容 */}
       <main className="container mx-auto px-4 py-12">
         <div className="max-w-5xl mx-auto">
