@@ -18,7 +18,7 @@ export default function Courses() {
   const [isLoading, setIsLoading] = useState(true);
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
-  const [durationMinutes, setDurationMinutes] = useState(60);
+  const [durationMinutes, setDurationMinutes] = useState(180);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isUserMenuOpen, setIsUserMenuOpen] = useState(false);
   const canManageQuestions = currentUser?.isAdmin || currentUser?.isAuthor;
@@ -26,7 +26,7 @@ export default function Courses() {
   const [editingCourseId, setEditingCourseId] = useState<string | null>(null);
   const [editTitle, setEditTitle] = useState('');
   const [editDescription, setEditDescription] = useState('');
-  const [editDurationMinutes, setEditDurationMinutes] = useState(60);
+  const [editDurationMinutes, setEditDurationMinutes] = useState(180);
   const [isSavingEdit, setIsSavingEdit] = useState(false);
 
   const loadCourses = async () => {
@@ -37,7 +37,7 @@ export default function Courses() {
       .order('created_at', { ascending: false });
 
     if (error) {
-      console.error('加载课程失败:', error);
+      console.error('load courses failed:', error);
       toast.error(t('courses.toastLoadFail'));
       setIsLoading(false);
       return;
@@ -63,7 +63,7 @@ export default function Courses() {
   const resetForm = () => {
     setTitle('');
     setDescription('');
-    setDurationMinutes(60);
+    setDurationMinutes(180);
   };
 
   const handleCreateCourse = async () => {
@@ -94,7 +94,7 @@ export default function Courses() {
 
     const { error } = await supabase.from('courses').insert(newCourse);
     if (error) {
-      console.error('创建课程失败:', error);
+      console.error('create course failed:', error);
       toast.error(t('courses.toastCreateFail'));
       setIsSubmitting(false);
       return;
@@ -117,7 +117,7 @@ export default function Courses() {
     setEditingCourseId(null);
     setEditTitle('');
     setEditDescription('');
-    setEditDurationMinutes(60);
+    setEditDurationMinutes(180);
     setIsSavingEdit(false);
   };
 
@@ -146,7 +146,7 @@ export default function Courses() {
       .eq('id', editingCourseId);
 
     if (error) {
-      console.error('更新课程失败:', error);
+      console.error('update course failed:', error);
       toast.error(t('courses.toastUpdateFail'));
       setIsSavingEdit(false);
       return;
