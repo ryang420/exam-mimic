@@ -19,6 +19,7 @@ export default function Results() {
   const { t } = useTranslation();
   const [examResult, setExamResult] = useState<ExamSession | null>(null);
   const [questions, setQuestions] = useState<Question[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
   const [showIncorrectOnly, setShowIncorrectOnly] = useState(false);
   const [isUserMenuOpen, setIsUserMenuOpen] = useState(false);
   const retakeCourseId = (location.state as { courseId?: string } | null)?.courseId;
@@ -43,8 +44,12 @@ export default function Results() {
 
   // 从Supabase加载考试结果和题目
   useEffect(() => {
-    if (!currentUser?.id) return;
+    if (!currentUser?.id) {
+      setIsLoading(false);
+      return;
+    }
 
+    setIsLoading(true);
     const loadResults = async () => {
       const sessionIdFromState = (location.state as { sessionId?: string } | null)?.sessionId;
       let sessionId = sessionIdFromState;
@@ -76,6 +81,7 @@ export default function Results() {
       if (!sessionRow || !sessionId) {
         setExamResult(null);
         setQuestions([]);
+        setIsLoading(false);
         return;
       }
 
@@ -87,6 +93,7 @@ export default function Results() {
 
       if (answersError || !answers) {
         console.error('加载答题记录失败:', answersError);
+        setIsLoading(false);
         return;
       }
 
@@ -98,6 +105,7 @@ export default function Results() {
 
       if (questionsError || !questionRows) {
         console.error('加载题目失败:', questionsError);
+        setIsLoading(false);
         return;
       }
 
@@ -120,6 +128,7 @@ export default function Results() {
 
       setExamResult(parsedResult);
       setQuestions(orderedQuestions);
+      setIsLoading(false);
     };
 
     loadResults();
@@ -258,7 +267,12 @@ export default function Results() {
             </div>
           </div>
           
-          {examResult && questions.length > 0 ? (
+          {isLoading ? (
+            <div className="flex flex-col items-center justify-center py-24">
+              <div className="w-12 h-12 border-4 border-blue-600 dark:border-blue-400 border-t-transparent rounded-full animate-spin mb-4" aria-hidden="true" />
+              <p className="text-gray-600 dark:text-gray-400">{t('common.loading')}</p>
+            </div>
+          ) : examResult && questions.length > 0 ? (
             <>
               {/* 成绩概览卡片 */}
               <motion.div
